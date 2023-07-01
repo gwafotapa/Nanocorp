@@ -1,13 +1,13 @@
 use crate::{signal::Signal, wire::Wire};
 
-struct GateSLR<'a> {
-    wire: &'a Wire,
+pub struct GateSLR<'a> {
+    wire: &'a Wire<'a>,
     shift: u8,
     // signal: Option<u16>,
 }
 
 impl<'a> GateSLR<'a> {
-    fn new(wire: &'a Wire, shift: u8) -> Option<Self> {
+    pub fn new(wire: &'a Wire, shift: u8) -> Option<Self> {
         if shift < 16 {
             Some(Self {
                 wire,
@@ -22,7 +22,7 @@ impl<'a> GateSLR<'a> {
 
 impl Signal for GateSLR<'_> {
     fn signal(&self) -> Option<u16> {
-        self.wire.signal.map(|s| s >> self.shift)
+        self.wire.signal().map(|s| s >> self.shift)
     }
 }
 
@@ -32,7 +32,7 @@ mod tests {
 
     #[test]
     fn gate_and() {
-        let w = Wire::new("a", Some(0x70)).unwrap();
+        let w = Wire::source_value("a", 0x70).unwrap();
         let slr_w = GateSLR::new(&w, 5).unwrap();
         assert_eq!(slr_w.signal(), Some(0x3));
     }

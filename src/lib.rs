@@ -1,7 +1,9 @@
-mod gate_and;
-mod gate_lshift;
-mod gate_rshift;
-mod gate_not;
-mod gate_or;
-mod signal;
-mod wire;
+pub mod circuit;
+pub mod gate;
+// pub mod gate_and;
+// pub mod gate_lshift;
+// pub mod gate_not;
+// pub mod gate_or;
+// pub mod gate_rshift;
+pub mod signal;
+pub mod wire;
