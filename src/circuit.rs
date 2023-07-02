@@ -186,4 +186,36 @@ mod tests {
         circuit.compute_signals();
         assert_eq!(circuit.get_signal("c"), Some(0xfffe));
     }
+
+    #[test]
+    fn instructions_example() {
+        let w1 = Wire::source_value("x", 123).unwrap();
+        let w2 = Wire::source_value("y", 456).unwrap();
+        let w3 = Wire::source_gate("d", Gate::and("x", "y").unwrap()).unwrap();
+        let w4 = Wire::source_gate("e", Gate::or("x", "y").unwrap()).unwrap();
+        let w5 = Wire::source_gate("f", Gate::sll("x", 2).unwrap()).unwrap();
+        let w6 = Wire::source_gate("g", Gate::slr("y", 2).unwrap()).unwrap();
+        let w7 = Wire::source_gate("h", Gate::not("x").unwrap()).unwrap();
+        let w8 = Wire::source_gate("i", Gate::not("y").unwrap()).unwrap();
+
+        let mut circuit = Circuit::new();
+        circuit.add_wire(w1);
+        circuit.add_wire(w2);
+        circuit.add_wire(w3);
+        circuit.add_wire(w4);
+        circuit.add_wire(w5);
+        circuit.add_wire(w6);
+        circuit.add_wire(w7);
+        circuit.add_wire(w8);
+        circuit.compute_signals();
+
+        assert_eq!(circuit.get_signal("d"), Some(72));
+        assert_eq!(circuit.get_signal("e"), Some(507));
+        assert_eq!(circuit.get_signal("f"), Some(492));
+        assert_eq!(circuit.get_signal("g"), Some(114));
+        assert_eq!(circuit.get_signal("h"), Some(65412));
+        assert_eq!(circuit.get_signal("i"), Some(65079));
+        assert_eq!(circuit.get_signal("x"), Some(123));
+        assert_eq!(circuit.get_signal("y"), Some(456));
+    }
 }
