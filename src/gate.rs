@@ -1,81 +1,85 @@
 // use crate::{signal::Signal, wire::Wire};
-use crate::wire::Wire;
+// use crate::wire::Wire;
 
-#[derive(Clone, Copy)]
-pub enum Gate<'a> {
+pub enum Gate {
     And {
-        wire1: &'a Wire<'a>,
-        wire2: &'a Wire<'a>,
-        signal: Option<u16>,
+        wire1: String,
+        wire2: String,
+        // signal: Option<u16>,
     },
     Or {
-        wire1: &'a Wire<'a>,
-        wire2: &'a Wire<'a>,
-        signal: Option<u16>,
+        wire1: String,
+        wire2: String,
+        // signal: Option<u16>,
     },
     SLL {
-        wire: &'a Wire<'a>,
+        wire: String,
         shift: u8,
-        signal: Option<u16>,
+        // signal: Option<u16>,
     },
     SLR {
-        wire: &'a Wire<'a>,
+        wire: String,
         shift: u8,
-        signal: Option<u16>,
+        // signal: Option<u16>,
     },
     Not {
-        wire: &'a Wire<'a>,
-        signal: Option<u16>,
+        wire: String,
+        // signal: Option<u16>,
     },
 }
 
-impl<'a> Gate<'a> {
-    pub fn and(wire1: &'a Wire, wire2: &'a Wire) -> Self {
-        Self::And {
+impl Gate {
+    pub fn and(wire1: impl Into<String>, wire2: impl Into<String>) -> Option<Self> {
+        let wire1 = wire1.into();
+        let wire2 = wire2.into();
+        (wire1.bytes().all(|b| b.is_ascii_lowercase())
+            && wire2.bytes().all(|b| b.is_ascii_lowercase()))
+        .then_some(Self::And {
             wire1,
             wire2,
-            signal: None,
-        }
+            // signal: None,
+        })
     }
 
-    pub fn or(wire1: &'a Wire, wire2: &'a Wire) -> Self {
-        Self::Or {
+    pub fn or(wire1: impl Into<String>, wire2: impl Into<String>) -> Option<Self> {
+        let wire1 = wire1.into();
+        let wire2 = wire2.into();
+        (wire1.bytes().all(|b| b.is_ascii_lowercase())
+            && wire2.bytes().all(|b| b.is_ascii_lowercase()))
+        .then_some(Self::Or {
             wire1,
             wire2,
-            signal: None,
-        }
+            // signal: None,
+        })
     }
 
-    pub fn sll(wire: &'a Wire, shift: u8) -> Option<Self> {
-        if shift < 16 {
-            Some(Self::SLL {
-                wire,
-                shift,
-                signal: None,
-            })
-        } else {
-            None
-        }
+    pub fn sll(wire: impl Into<String>, shift: u8) -> Option<Self> {
+        let wire = wire.into();
+        (wire.bytes().all(|b| b.is_ascii_lowercase()) && shift < 16).then_some(Self::SLL {
+            wire,
+            shift,
+            // signal: None,
+        })
     }
 
-    pub fn slr(wire: &'a Wire, shift: u8) -> Option<Self> {
-        if shift < 16 {
-            Some(Self::SLR {
-                wire,
-                shift,
-                signal: None,
-            })
-        } else {
-            None
-        }
+    pub fn slr(wire: impl Into<String>, shift: u8) -> Option<Self> {
+        let wire = wire.into();
+        (wire.bytes().all(|b| b.is_ascii_lowercase()) && shift < 16).then_some(Self::SLR {
+            wire,
+            shift,
+            // signal: None,
+        })
     }
 
-    pub fn not(wire: &'a Wire) -> Self {
-        Self::Not { wire, signal: None }
+    pub fn not(wire: impl Into<String>) -> Option<Self> {
+        let wire = wire.into();
+        wire.bytes()
+            .all(|b| b.is_ascii_lowercase())
+            .then_some(Self::Not { wire }) //signal: None })
     }
 }
 
-// impl<'a> Signal for Gate<'a> {
+// impl Signal for Gate {
 //     fn signal(&self) -> Option<u16> {
 //         match self {
 //             Self::And(w1, w2) => {
