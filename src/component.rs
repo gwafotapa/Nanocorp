@@ -38,93 +38,98 @@ pub enum WireSource {
 }
 
 impl Component {
-    pub fn new_wire_with_value(id: impl Into<String>, value: u16) -> Self {
-        Self {
-            id: id.into(),
-            kind: ComponentKind::Wire {
-                source: WireSource::Value(value),
-            },
-            signal: None,
-        }
+    pub fn new_wire_with_value(id: impl Into<String>, value: u16) -> Option<Self> {
+        Self::new_wire(id, WireSource::Value(value))
     }
 
-    pub fn new_wire_from_component(id: impl Into<String>, input: impl Into<String>) -> Self {
-        Self {
-            id: id.into(),
-            kind: ComponentKind::Wire {
-                source: WireSource::Id(input.into()),
-            },
-            signal: None,
-        }
+    pub fn new_wire_from_component(
+        id: impl Into<String>,
+        source_id: impl Into<String>,
+    ) -> Option<Self> {
+        Self::new_wire(id, WireSource::Id(source_id.into()))
     }
 
-    pub fn new_wire(id: impl Into<String>, source: WireSource) -> Self {
-        Self {
+    pub fn new_wire(id: impl Into<String>, source: WireSource) -> Option<Self> {
+        let id = id.into();
+        id.bytes().all(|b| b.is_ascii_lowercase()).then_some(Self {
             id: id.into(),
             kind: ComponentKind::Wire { source },
             signal: None,
-        }
+        })
     }
 
     pub fn new_gate_and(
         id: impl Into<String>,
         source1: impl Into<String>,
         source2: impl Into<String>,
-    ) -> Component {
-        Self {
-            id: id.into(),
+    ) -> Option<Self> {
+        let id = id.into();
+        id.bytes().all(|b| b.is_ascii_uppercase()).then_some(Self {
+            id,
             kind: ComponentKind::GateAnd {
                 source1: source1.into(),
                 source2: source2.into(),
             },
             signal: None,
-        }
+        })
     }
 
     pub fn new_gate_or(
         id: impl Into<String>,
         source1: impl Into<String>,
         source2: impl Into<String>,
-    ) -> Component {
-        Self {
-            id: id.into(),
+    ) -> Option<Self> {
+        let id = id.into();
+        id.bytes().all(|b| b.is_ascii_uppercase()).then_some(Self {
+            id,
             kind: ComponentKind::GateOr {
                 source1: source1.into(),
                 source2: source2.into(),
             },
             signal: None,
-        }
+        })
     }
 
-    pub fn new_gate_sll(id: impl Into<String>, source: impl Into<String>, shift: u8) -> Component {
-        Self {
-            id: id.into(),
+    pub fn new_gate_sll(
+        id: impl Into<String>,
+        source: impl Into<String>,
+        shift: u8,
+    ) -> Option<Self> {
+        let id = id.into();
+        (id.bytes().all(|b| b.is_ascii_uppercase()) && shift < 16).then_some(Self {
+            id,
             kind: ComponentKind::GateSLL {
                 source: source.into(),
                 shift,
             },
             signal: None,
-        }
+        })
     }
 
-    pub fn new_gate_slr(id: impl Into<String>, source: impl Into<String>, shift: u8) -> Component {
-        Self {
-            id: id.into(),
+    pub fn new_gate_slr(
+        id: impl Into<String>,
+        source: impl Into<String>,
+        shift: u8,
+    ) -> Option<Self> {
+        let id = id.into();
+        (id.bytes().all(|b| b.is_ascii_uppercase()) && shift < 16).then_some(Self {
+            id,
             kind: ComponentKind::GateSLR {
                 source: source.into(),
                 shift,
             },
             signal: None,
-        }
+        })
     }
 
-    pub fn new_gate_not(id: impl Into<String>, source: impl Into<String>) -> Component {
-        Self {
-            id: id.into(),
+    pub fn new_gate_not(id: impl Into<String>, source: impl Into<String>) -> Option<Self> {
+        let id = id.into();
+        id.bytes().all(|b| b.is_ascii_uppercase()).then_some(Self {
+            id,
             kind: ComponentKind::GateNot {
                 source: source.into(),
             },
             signal: None,
-        }
+        })
     }
 }

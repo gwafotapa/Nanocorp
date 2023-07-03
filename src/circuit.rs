@@ -10,8 +10,6 @@ pub struct Circuit {
 impl Circuit {
     pub fn new() -> Self {
         Self {
-            // wires: vec![],
-            // map: HashMap::new(),
             components: HashMap::new(),
         }
     }
@@ -29,14 +27,23 @@ impl Circuit {
         self.components.remove(id);
     }
 
+    // TODO: 2 possible fails: nonconforming string or preexisting string. Use a result
     pub fn add_wire(&mut self, id: impl Into<String>, source: WireSource) -> bool {
-        let wire = Component::new_wire(id, source);
-        self.add_component(wire)
+        if let Some(wire) = Component::new_wire(id, source) {
+            self.add_component(wire);
+            true
+        } else {
+            false
+        }
     }
 
     pub fn add_wire_with_value(&mut self, id: impl Into<String>, value: u16) -> bool {
-        let wire = Component::new_wire_with_value(id, value);
-        self.add_component(wire)
+        if let Some(wire) = Component::new_wire_with_value(id, value) {
+            self.add_component(wire);
+            true
+        } else {
+            false
+        }
     }
 
     pub fn add_wire_from_component(
@@ -44,8 +51,12 @@ impl Circuit {
         id: impl Into<String>,
         component_id: impl Into<String>,
     ) -> bool {
-        let wire = Component::new_wire_from_component(id, component_id);
-        self.add_component(wire)
+        if let Some(wire) = Component::new_wire_from_component(id, component_id) {
+            self.add_component(wire);
+            true
+        } else {
+            false
+        }
     }
 
     pub fn add_gate_and(
@@ -54,8 +65,12 @@ impl Circuit {
         source1: impl Into<String>,
         source2: impl Into<String>,
     ) -> bool {
-        let gate = Component::new_gate_and(id, source1, source2);
-        self.add_component(gate)
+        if let Some(gate) = Component::new_gate_and(id, source1, source2) {
+            self.add_component(gate);
+            true
+        } else {
+            false
+        }
     }
 
     pub fn add_wired_gate_and(
@@ -82,8 +97,12 @@ impl Circuit {
         source1: impl Into<String>,
         source2: impl Into<String>,
     ) -> bool {
-        let gate = Component::new_gate_or(id, source1, source2);
-        self.add_component(gate)
+        if let Some(gate) = Component::new_gate_or(id, source1, source2) {
+            self.add_component(gate);
+            true
+        } else {
+            false
+        }
     }
 
     pub fn add_wired_gate_or(
@@ -110,8 +129,12 @@ impl Circuit {
         source: impl Into<String>,
         shift: u8,
     ) -> bool {
-        let gate = Component::new_gate_sll(id, source, shift);
-        self.add_component(gate)
+        if let Some(gate) = Component::new_gate_sll(id, source, shift) {
+            self.add_component(gate);
+            true
+        } else {
+            false
+        }
     }
 
     pub fn add_wired_gate_sll(
@@ -138,8 +161,12 @@ impl Circuit {
         source: impl Into<String>,
         shift: u8,
     ) -> bool {
-        let gate = Component::new_gate_slr(id, source, shift);
-        self.add_component(gate)
+        if let Some(gate) = Component::new_gate_slr(id, source, shift) {
+            self.add_component(gate);
+            true
+        } else {
+            false
+        }
     }
 
     pub fn add_wired_gate_slr(
@@ -161,8 +188,12 @@ impl Circuit {
     }
 
     pub fn add_gate_not(&mut self, id: impl Into<String>, source: impl Into<String>) -> bool {
-        let gate = Component::new_gate_not(id, source);
-        self.add_component(gate)
+        if let Some(gate) = Component::new_gate_not(id, source) {
+            self.add_component(gate);
+            true
+        } else {
+            false
+        }
     }
 
     pub fn add_wired_gate_not(&mut self, id: impl Into<String>, source: impl Into<String>) -> bool {
@@ -179,6 +210,7 @@ impl Circuit {
     }
 
     // TODO: rework
+    // TODO: check for loops
     pub fn compute_signals(&mut self) -> bool {
         let mut ids: Vec<String> = self.components.keys().map(|id| id.into()).collect();
         while let Some(id) = ids.last() {
@@ -263,34 +295,8 @@ impl Circuit {
         true
     }
 
-    // fn compute_signal(&mut self, id: impl AsRef<str>) -> bool {
-    //     if let Some(wire) = self.wires.get_mut(id.as_ref()) {
-    //         if let Some(source) = &wire.source {
-    //             match source {
-    //                 Source::Value(value) => {
-    //                     wire.signal = Some(*value);
-    //                     true
-    //                 }
-    //                 Source::Wire(wire_id) => {
-    //                     if self.compute_signal(wire_id) {
-    //                         wire.signal = self.get_signal(<String as AsRef<str>>::as_ref(wire_id));
-    //                         true
-    //                     } else {
-    //                         false
-    //                     }
-    //                 }
-    //                 Source::Gate(gate) => true,
-    //             }
-    //         } else {
-    //             false
-    //         }
-    //     } else {
-    //         false
-    //     }
-    // }
-
-    fn get_signal(&self, id: impl AsRef<str>) -> Option<u16> {
-        self.components.get(id.as_ref()).and_then(|w| w.signal)
+    fn get_signal(&self, id: &str) -> Option<u16> {
+        self.components.get(id).and_then(|w| w.signal)
     }
 }
 
@@ -300,8 +306,8 @@ mod tests {
 
     #[test]
     fn simple_circuit() {
-        let w1 = Component::new_wire_with_value("a", 1);
-        let w2 = Component::new_wire_from_component("b", "a");
+        let w1 = Component::new_wire_with_value("a", 1).unwrap();
+        let w2 = Component::new_wire_from_component("b", "a").unwrap();
         // let w2_ = Component::new_wire_from_component("b", "a");
 
         let mut circuit = Circuit::new();
@@ -316,29 +322,29 @@ mod tests {
         assert_eq!(circuit.get_signal("a"), Some(1));
         assert_eq!(circuit.get_signal("b"), Some(1));
 
-        let g = Component::new_gate_not("c", "b");
+        let g = Component::new_gate_not("C", "b").unwrap();
         circuit.add_component(g);
-        assert_eq!(circuit.get_signal("c"), None);
+        assert_eq!(circuit.get_signal("C"), None);
         circuit.compute_signals();
-        assert_eq!(circuit.get_signal("c"), Some(0xfffe));
+        assert_eq!(circuit.get_signal("C"), Some(0xfffe));
     }
 
     #[test]
     fn instructions_example() {
-        let x = Component::new_wire_with_value("x", 123);
-        let y = Component::new_wire_with_value("y", 456);
-        let gd = Component::new_gate_and("D", "x", "y");
-        let ge = Component::new_gate_or("E", "x", "y");
-        let gf = Component::new_gate_sll("F", "x", 2);
-        let gg = Component::new_gate_slr("G", "y", 2);
-        let gh = Component::new_gate_not("H", "x");
-        let gi = Component::new_gate_not("I", "y");
-        let d = Component::new_wire_from_component("d", "D");
-        let e = Component::new_wire_from_component("e", "E");
-        let f = Component::new_wire_from_component("f", "F");
-        let g = Component::new_wire_from_component("g", "G");
-        let h = Component::new_wire_from_component("h", "H");
-        let i = Component::new_wire_from_component("i", "I");
+        let x = Component::new_wire_with_value("x", 123).unwrap();
+        let y = Component::new_wire_with_value("y", 456).unwrap();
+        let gd = Component::new_gate_and("D", "x", "y").unwrap();
+        let ge = Component::new_gate_or("E", "x", "y").unwrap();
+        let gf = Component::new_gate_sll("F", "x", 2).unwrap();
+        let gg = Component::new_gate_slr("G", "y", 2).unwrap();
+        let gh = Component::new_gate_not("H", "x").unwrap();
+        let gi = Component::new_gate_not("I", "y").unwrap();
+        let d = Component::new_wire_from_component("d", "D").unwrap();
+        let e = Component::new_wire_from_component("e", "E").unwrap();
+        let f = Component::new_wire_from_component("f", "F").unwrap();
+        let g = Component::new_wire_from_component("g", "G").unwrap();
+        let h = Component::new_wire_from_component("h", "H").unwrap();
+        let i = Component::new_wire_from_component("i", "I").unwrap();
 
         let mut circuit = Circuit::new();
         circuit.add_component(x);
