@@ -1,9 +1,11 @@
 use std::collections::HashMap;
 
-use crate::component::{Component, ComponentId, ComponentKind, WireSource};
+use crate::{
+    component::{Component, ComponentId, ComponentKind, WireSource},
+    error::Error,
+};
 
 pub struct Circuit {
-    // pub wires: Vec<Wire>,
     components: HashMap<ComponentId, Component>,
 }
 
@@ -14,12 +16,12 @@ impl Circuit {
         }
     }
 
-    pub fn add_component(&mut self, component: Component) -> bool {
+    pub fn add_component(&mut self, component: Component) -> Result<(), Error> {
         if self.components.contains_key(&component.id) {
-            false
+            Err(Error::IdAlreadyExists(component.id))
         } else {
             self.components.insert(component.id.clone(), component);
-            true
+            Ok(())
         }
     }
 
@@ -27,36 +29,26 @@ impl Circuit {
         self.components.remove(id);
     }
 
-    // TODO: 2 possible fails: nonconforming string or preexisting string. Use a result
-    pub fn add_wire(&mut self, id: impl Into<String>, source: WireSource) -> bool {
-        if let Some(wire) = Component::new_wire(id, source) {
-            self.add_component(wire);
-            true
-        } else {
-            false
-        }
+    pub fn add_wire(&mut self, id: impl Into<String>, source: WireSource) -> Result<(), Error> {
+        let wire = Component::new_wire(id, source)?;
+        self.add_component(wire)?;
+        Ok(())
     }
 
-    pub fn add_wire_with_value(&mut self, id: impl Into<String>, value: u16) -> bool {
-        if let Some(wire) = Component::new_wire_with_value(id, value) {
-            self.add_component(wire);
-            true
-        } else {
-            false
-        }
+    pub fn add_wire_with_value(&mut self, id: impl Into<String>, value: u16) -> Result<(), Error> {
+        let wire = Component::new_wire_with_value(id, value)?;
+        self.add_component(wire)?;
+        Ok(())
     }
 
     pub fn add_wire_from_component(
         &mut self,
         id: impl Into<String>,
         component_id: impl Into<String>,
-    ) -> bool {
-        if let Some(wire) = Component::new_wire_from_component(id, component_id) {
-            self.add_component(wire);
-            true
-        } else {
-            false
-        }
+    ) -> Result<(), Error> {
+        let wire = Component::new_wire_from_component(id, component_id)?;
+        self.add_component(wire)?;
+        Ok(())
     }
 
     pub fn add_gate_and(
@@ -64,13 +56,10 @@ impl Circuit {
         id: impl Into<String>,
         source1: impl Into<String>,
         source2: impl Into<String>,
-    ) -> bool {
-        if let Some(gate) = Component::new_gate_and(id, source1, source2) {
-            self.add_component(gate);
-            true
-        } else {
-            false
-        }
+    ) -> Result<(), Error> {
+        let gate = Component::new_gate_and(id, source1, source2)?;
+        self.add_component(gate)?;
+        Ok(())
     }
 
     pub fn add_wired_gate_and(
@@ -78,17 +67,15 @@ impl Circuit {
         id: impl Into<String>,
         source1: impl Into<String>,
         source2: impl Into<String>,
-    ) -> bool {
+    ) -> Result<(), Error> {
         let id = id.into();
         let uid = &id.to_ascii_uppercase();
-        if !self.add_gate_and(uid, source1, source2) {
-            return false;
-        }
-        if !self.add_wire_from_component(id, uid) {
+        self.add_gate_and(uid, source1, source2)?;
+        self.add_wire_from_component(id, uid).or_else(|err| {
             self.remove_component(&uid);
-            return false;
-        }
-        true
+            Err(err)
+        })?;
+        Ok(())
     }
 
     pub fn add_gate_or(
@@ -96,13 +83,10 @@ impl Circuit {
         id: impl Into<String>,
         source1: impl Into<String>,
         source2: impl Into<String>,
-    ) -> bool {
-        if let Some(gate) = Component::new_gate_or(id, source1, source2) {
-            self.add_component(gate);
-            true
-        } else {
-            false
-        }
+    ) -> Result<(), Error> {
+        let gate = Component::new_gate_or(id, source1, source2)?;
+        self.add_component(gate)?;
+        Ok(())
     }
 
     pub fn add_wired_gate_or(
@@ -110,17 +94,15 @@ impl Circuit {
         id: impl Into<String>,
         source1: impl Into<String>,
         source2: impl Into<String>,
-    ) -> bool {
+    ) -> Result<(), Error> {
         let id = id.into();
         let uid = &id.to_ascii_uppercase();
-        if !self.add_gate_or(uid, source1, source2) {
-            return false;
-        }
-        if !self.add_wire_from_component(id, uid) {
+        self.add_gate_or(uid, source1, source2)?;
+        self.add_wire_from_component(id, uid).or_else(|err| {
             self.remove_component(&uid);
-            return false;
-        }
-        true
+            Err(err)
+        })?;
+        Ok(())
     }
 
     pub fn add_gate_sll(
@@ -128,13 +110,10 @@ impl Circuit {
         id: impl Into<String>,
         source: impl Into<String>,
         shift: u8,
-    ) -> bool {
-        if let Some(gate) = Component::new_gate_sll(id, source, shift) {
-            self.add_component(gate);
-            true
-        } else {
-            false
-        }
+    ) -> Result<(), Error> {
+        let gate = Component::new_gate_sll(id, source, shift)?;
+        self.add_component(gate)?;
+        Ok(())
     }
 
     pub fn add_wired_gate_sll(
@@ -142,17 +121,15 @@ impl Circuit {
         id: impl Into<String>,
         source: impl Into<String>,
         shift: u8,
-    ) -> bool {
+    ) -> Result<(), Error> {
         let id = id.into();
         let uid = &id.to_ascii_uppercase();
-        if !self.add_gate_sll(uid, source, shift) {
-            return false;
-        }
-        if !self.add_wire_from_component(id, uid) {
+        self.add_gate_sll(uid, source, shift)?;
+        self.add_wire_from_component(id, uid).or_else(|err| {
             self.remove_component(&uid);
-            return false;
-        }
-        true
+            Err(err)
+        })?;
+        Ok(())
     }
 
     pub fn add_gate_slr(
@@ -160,13 +137,10 @@ impl Circuit {
         id: impl Into<String>,
         source: impl Into<String>,
         shift: u8,
-    ) -> bool {
-        if let Some(gate) = Component::new_gate_slr(id, source, shift) {
-            self.add_component(gate);
-            true
-        } else {
-            false
-        }
+    ) -> Result<(), Error> {
+        let gate = Component::new_gate_slr(id, source, shift)?;
+        self.add_component(gate)?;
+        Ok(())
     }
 
     pub fn add_wired_gate_slr(
@@ -174,43 +148,45 @@ impl Circuit {
         id: impl Into<String>,
         source: impl Into<String>,
         shift: u8,
-    ) -> bool {
+    ) -> Result<(), Error> {
         let id = id.into();
         let uid = &id.to_ascii_uppercase();
-        if !self.add_gate_slr(uid, source, shift) {
-            return false;
-        }
-        if !self.add_wire_from_component(id, uid) {
+        self.add_gate_slr(uid, source, shift)?;
+        self.add_wire_from_component(id, uid).or_else(|err| {
             self.remove_component(&uid);
-            return false;
-        }
-        true
+            Err(err)
+        })?;
+        Ok(())
     }
 
-    pub fn add_gate_not(&mut self, id: impl Into<String>, source: impl Into<String>) -> bool {
-        if let Some(gate) = Component::new_gate_not(id, source) {
-            self.add_component(gate);
-            true
-        } else {
-            false
-        }
+    pub fn add_gate_not(
+        &mut self,
+        id: impl Into<String>,
+        source: impl Into<String>,
+    ) -> Result<(), Error> {
+        let gate = Component::new_gate_not(id, source)?;
+        self.add_component(gate)?;
+        Ok(())
     }
 
-    pub fn add_wired_gate_not(&mut self, id: impl Into<String>, source: impl Into<String>) -> bool {
+    pub fn add_wired_gate_not(
+        &mut self,
+        id: impl Into<String>,
+        source: impl Into<String>,
+    ) -> Result<(), Error> {
         let id = id.into();
         let uid = &id.to_ascii_uppercase();
-        if !self.add_gate_not(uid, source) {
-            return false;
-        }
-        if !self.add_wire_from_component(id, uid) {
+        self.add_gate_not(uid, source)?;
+        self.add_wire_from_component(id, uid).or_else(|err| {
             self.remove_component(&uid);
-            return false;
-        }
-        true
+            Err(err)
+        })?;
+        Ok(())
     }
 
     // TODO: rework
     // TODO: check for loops
+    // TODO: add result return type
     pub fn compute_signals(&mut self) -> bool {
         let mut ids: Vec<String> = self.components.keys().map(|id| id.into()).collect();
         while let Some(id) = ids.last() {
@@ -311,8 +287,8 @@ mod tests {
         // let w2_ = Component::new_wire_from_component("b", "a");
 
         let mut circuit = Circuit::new();
-        assert!(circuit.add_component(w1));
-        assert!(circuit.add_component(w2));
+        assert!(circuit.add_component(w1).is_ok());
+        assert!(circuit.add_component(w2).is_ok());
         // assert!(!circuit.add_component(w2_));
 
         assert_eq!(circuit.get_signal("z"), None);
@@ -323,7 +299,7 @@ mod tests {
         assert_eq!(circuit.get_signal("b"), Some(1));
 
         let g = Component::new_gate_not("C", "b").unwrap();
-        circuit.add_component(g);
+        let _ = circuit.add_component(g);
         assert_eq!(circuit.get_signal("C"), None);
         circuit.compute_signals();
         assert_eq!(circuit.get_signal("C"), Some(0xfffe));
@@ -347,20 +323,20 @@ mod tests {
         let i = Component::new_wire_from_component("i", "I").unwrap();
 
         let mut circuit = Circuit::new();
-        circuit.add_component(x);
-        circuit.add_component(y);
-        circuit.add_component(gd);
-        circuit.add_component(ge);
-        circuit.add_component(gf);
-        circuit.add_component(gg);
-        circuit.add_component(gh);
-        circuit.add_component(gi);
-        circuit.add_component(d);
-        circuit.add_component(e);
-        circuit.add_component(f);
-        circuit.add_component(g);
-        circuit.add_component(h);
-        circuit.add_component(i);
+        circuit.add_component(x).unwrap();
+        circuit.add_component(y).unwrap();
+        circuit.add_component(gd).unwrap();
+        circuit.add_component(ge).unwrap();
+        circuit.add_component(gf).unwrap();
+        circuit.add_component(gg).unwrap();
+        circuit.add_component(gh).unwrap();
+        circuit.add_component(gi).unwrap();
+        circuit.add_component(d).unwrap();
+        circuit.add_component(e).unwrap();
+        circuit.add_component(f).unwrap();
+        circuit.add_component(g).unwrap();
+        circuit.add_component(h).unwrap();
+        circuit.add_component(i).unwrap();
 
         circuit.compute_signals();
 
@@ -377,14 +353,14 @@ mod tests {
     #[test]
     fn instructions_example_2() {
         let mut circuit = Circuit::new();
-        circuit.add_wire_with_value("x", 123);
-        circuit.add_wire_with_value("y", 456);
-        circuit.add_wired_gate_and("d", "x", "y");
-        circuit.add_wired_gate_or("e", "x", "y");
-        circuit.add_wired_gate_sll("f", "x", 2);
-        circuit.add_wired_gate_slr("g", "y", 2);
-        circuit.add_wired_gate_not("h", "x");
-        circuit.add_wired_gate_not("i", "y");
+        circuit.add_wire_with_value("x", 123).unwrap();
+        circuit.add_wire_with_value("y", 456).unwrap();
+        circuit.add_wired_gate_and("d", "x", "y").unwrap();
+        circuit.add_wired_gate_or("e", "x", "y").unwrap();
+        circuit.add_wired_gate_sll("f", "x", 2).unwrap();
+        circuit.add_wired_gate_slr("g", "y", 2).unwrap();
+        circuit.add_wired_gate_not("h", "x").unwrap();
+        circuit.add_wired_gate_not("i", "y").unwrap();
         circuit.compute_signals();
 
         assert_eq!(circuit.get_signal("d"), Some(72));
