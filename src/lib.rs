@@ -7,3 +7,5 @@ pub mod gate;
 // pub mod gate_rshift;
 pub mod signal;
 pub mod wire;
+
+pub mod component;
