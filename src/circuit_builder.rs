@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::{collections::HashMap, mem};
 
 use crate::{
     circuit::Circuit,
@@ -18,7 +18,7 @@ impl CircuitBuilder {
 
     pub fn build(&mut self) -> Circuit {
         let mut circuit = Circuit::new();
-        std::mem::swap(&mut circuit.components, &mut self.components);
+        mem::swap(&mut circuit.components, &mut self.components);
         circuit
     }
 

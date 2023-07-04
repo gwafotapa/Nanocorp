@@ -1,3 +1,5 @@
+use std::fmt;
+
 use crate::error::Error;
 
 pub type ComponentId = String;
@@ -110,9 +112,11 @@ impl Component {
         shift: u8,
     ) -> Result<Self, Error> {
         let id = id.into();
-        if shift > 15 {
+        if !id.bytes().all(|b| b.is_ascii_uppercase()) {
+            Err(Error::WrongFormatId(id))
+        } else if shift > 15 {
             Err(Error::ShiftTooLarge(shift))
-        } else if id.bytes().all(|b| b.is_ascii_uppercase()) {
+        } else {
             Ok(Self {
                 id,
                 kind: ComponentKind::GateSLL {
@@ -121,8 +125,6 @@ impl Component {
                 },
                 signal: None,
             })
-        } else {
-            Err(Error::WrongFormatId(id))
         }
     }
 
@@ -132,9 +134,11 @@ impl Component {
         shift: u8,
     ) -> Result<Self, Error> {
         let id = id.into();
-        if shift > 15 {
+        if !id.bytes().all(|b| b.is_ascii_uppercase()) {
+            Err(Error::WrongFormatId(id))
+        } else if shift > 15 {
             Err(Error::ShiftTooLarge(shift))
-        } else if id.bytes().all(|b| b.is_ascii_uppercase()) {
+        } else {
             Ok(Self {
                 id,
                 kind: ComponentKind::GateSLR {
@@ -143,8 +147,6 @@ impl Component {
                 },
                 signal: None,
             })
-        } else {
-            Err(Error::WrongFormatId(id))
         }
     }
 
@@ -160,6 +162,34 @@ impl Component {
             })
         } else {
             Err(Error::WrongFormatId(id))
+        }
+    }
+}
+
+impl fmt::Display for Component {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self.kind {
+            ComponentKind::Wire { source } => {
+                write!(f, "{} -> {}", source, self.id)
+            }
+            ComponentKind::GateAnd { source1, source2 } => {}
+            ComponentKind::GateOr { source1, source2 } => {}
+            ComponentKind::GateSLL { source, shift } => {}
+            ComponentKind::GateSLR { source, shift } => {}
+            ComponentKind::GateNot { source } => {}
+        }
+    }
+}
+
+impl fmt::Display for WireSource {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            WireSource::Value(value) => {
+                write!(f, "{}", value)
+            }
+            WireSource::Id(id) => {
+                write!(f, "{}", id)
+            }
         }
     }
 }
