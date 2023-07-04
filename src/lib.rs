@@ -5,6 +5,7 @@ pub mod gate;
 // pub mod gate_not;
 // pub mod gate_or;
 // pub mod gate_rshift;
+pub mod circuit_builder;
 pub mod component;
 pub mod error;
 pub mod signal;

@@ -6,7 +6,7 @@ use crate::{
 };
 
 pub struct Circuit {
-    components: HashMap<ComponentId, Component>,
+    pub components: HashMap<ComponentId, Component>,
 }
 
 impl Circuit {
@@ -271,7 +271,7 @@ impl Circuit {
         true
     }
 
-    fn get_signal(&self, id: &str) -> Option<u16> {
+    pub fn get_signal(&self, id: &str) -> Option<u16> {
         self.components.get(id).and_then(|w| w.signal)
     }
 }
