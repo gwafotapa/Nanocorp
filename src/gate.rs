@@ -1,5 +1,6 @@
 use crate::{error::Error, wire::WireId};
 
+#[derive(Debug, PartialEq)]
 pub enum Gate {
     And { input1: WireId, input2: WireId },
     Or { input1: WireId, input2: WireId },

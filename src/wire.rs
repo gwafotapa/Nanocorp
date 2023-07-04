@@ -4,12 +4,14 @@ use crate::{error::Error, gate::Gate};
 
 pub type WireId = String;
 
+#[derive(Debug, PartialEq)]
 pub enum WireInput {
     Value(u16),
     Wire(WireId),
     Gate(Gate),
 }
 
+#[derive(Debug, PartialEq)]
 pub struct Wire {
     pub id: WireId,
     pub input: WireInput,
@@ -188,26 +190,87 @@ impl fmt::Display for Wire {
     }
 }
 
-// #[cfg(test)]
-// mod tests {
-//     use super::*;
+impl From<&str> for Wire {
+    fn from(s: &str) -> Self {
+        let (input, output) = s.split_once(" -> ").unwrap();
+        let inputs: Vec<&str> = input.split(' ').collect();
+        let wire_input = match inputs.len() {
+            1 => {
+                if inputs[0].as_bytes()[0].is_ascii_lowercase() {
+                    WireInput::Wire(inputs[0].to_string())
+                } else {
+                    WireInput::Value(inputs[0].parse::<u16>().unwrap())
+                }
+            }
+            2 => WireInput::Gate(Gate::not(inputs[1]).unwrap()),
+            3 => WireInput::Gate(match inputs[1] {
+                "AND" => Gate::and(inputs[0], inputs[2]).unwrap(),
+                "OR" => Gate::or(inputs[0], inputs[2]).unwrap(),
+                "LSHIFT" => Gate::sll(inputs[0], inputs[2].parse::<u8>().unwrap()).unwrap(),
+                "RSHIFT" => Gate::slr(inputs[0], inputs[2].parse::<u8>().unwrap()).unwrap(),
+                _ => panic!("Cannot convert string \"{}\" to wire", s),
+            }),
+            _ => panic!("Cannot convert string \"{}\" to wire", s),
+        };
+        Wire::new(output, wire_input).unwrap()
+    }
+}
 
-//     #[test]
-//     fn ids() {
-//         // assert!(Wire::no_input("A").is_none());
-//         // assert!(Wire::no_input("3").is_none());
-//         // assert!(Wire::no_input("nano corp").is_none());
-//         // assert!(Wire::no_input("nanocorp").is_some());
-//         // assert!(Wire::no_input("wire!").is_none());
-//         // assert!(Wire::no_input("z\n").is_none());
-//     }
+#[cfg(test)]
+mod tests {
+    use super::*;
 
-//     #[test]
-//     fn inputs() {
-//         // let w1 = Wire::new("a", WireInput::Value(1)).unwrap();
-//         // assert_eq!(w1.signal, Some(1));
+    // #[test]
+    // fn ids() {
+    // assert!(Wire::no_input("A").is_none());
+    // assert!(Wire::no_input("3").is_none());
+    // assert!(Wire::no_input("nano corp").is_none());
+    // assert!(Wire::no_input("nanocorp").is_some());
+    // assert!(Wire::no_input("wire!").is_none());
+    // assert!(Wire::no_input("z\n").is_none());
+    // }
 
-//         // let w2 = Wire::new("b", WireInput::Wire(&w1)).unwrap();
-//         // assert_eq!(w2.signal, Some(1));
-//     }
-// }
+    // #[test]
+    // fn inputs() {
+    // let w1 = Wire::new("a", WireInput::Value(1)).unwrap();
+    // assert_eq!(w1.signal, Some(1));
+
+    // let w2 = Wire::new("b", WireInput::Wire(&w1)).unwrap();
+    // assert_eq!(w2.signal, Some(1));
+    // }
+
+    #[test]
+    fn from() {
+        let w1 = Wire::from("456 -> y");
+        let w2 = Wire::with_value("y", 456).unwrap();
+        assert_eq!(w1, w2);
+
+        let w1 = Wire::from("x LSHIFT 2 -> f");
+        let w2 = Wire::from_gate_sll("f", "x", 2).unwrap();
+        assert_eq!(w1, w2);
+
+        let w1 = Wire::from("NOT; x -> h");
+        let w2 = Wire::from_gate_not("h", "x").unwrap();
+        assert_eq!(w1, w2);
+
+        let w1 = Wire::from("x OR y -> e");
+        let w2 = Wire::from_gate_or("e", "x", "y").unwrap();
+        assert_eq!(w1, w2);
+
+        let w1 = Wire::from("y RSHIFT 2 -> g");
+        let w2 = Wire::from_gate_slr("g", "y", 2).unwrap();
+        assert_eq!(w1, w2);
+
+        let w1 = Wire::from("NOT y -> i");
+        let w2 = Wire::from_gate_not("i", "y").unwrap();
+        assert_eq!(w1, w2);
+
+        let w1 = Wire::from("123 -> x");
+        let w2 = Wire::with_value("x", 123).unwrap();
+        assert_eq!(w1, w2);
+
+        let w1 = Wire::from("x AND y -> d");
+        let w2 = Wire::from_gate_and("d", "x", "y").unwrap();
+        assert_eq!(w1, w2);
+    }
+}
