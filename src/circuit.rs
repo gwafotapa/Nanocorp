@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::{collections::HashMap, fmt};
 
 use crate::{
     error::Error,
@@ -214,6 +214,15 @@ impl Circuit {
     }
 }
 
+impl fmt::Display for Circuit {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        for wire in self.wires.values() {
+            write!(f, "{}\n", wire)?
+        }
+        Ok(())
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -242,6 +251,7 @@ mod tests {
         assert_eq!(circuit.get_signal("c"), None);
         circuit.compute_signals();
         assert_eq!(circuit.get_signal("c"), Some(0xfffe));
+        println!("{}", circuit);
     }
 
     #[test]
@@ -295,6 +305,8 @@ mod tests {
         circuit.add_gate_not("h", "x").unwrap();
         circuit.add_gate_not("i", "y").unwrap();
         circuit.compute_signals();
+
+        println!("{}", circuit);
 
         assert_eq!(circuit.get_signal("d"), Some(72));
         assert_eq!(circuit.get_signal("e"), Some(507));

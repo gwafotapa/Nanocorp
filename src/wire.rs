@@ -1,4 +1,5 @@
-// use crate::signal::Signal;
+use std::fmt; // use crate::signal::Signal;
+
 use crate::{error::Error, gate::Gate};
 
 pub type WireId = String;
@@ -156,6 +157,36 @@ impl Wire {
 //         self.id == other.id
 //     }
 // }
+
+impl fmt::Display for Wire {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match &self.input {
+            WireInput::Value(value) => {
+                write!(f, "{} -> {}", value, self.id)
+            }
+            WireInput::Wire(input_id) => {
+                write!(f, "{} -> {}", input_id, self.id)
+            }
+            WireInput::Gate(gate) => match gate {
+                Gate::And { input1, input2 } => {
+                    write!(f, "{} AND {} -> {}", input1, input2, self.id)
+                }
+                Gate::Or { input1, input2 } => {
+                    write!(f, "{} OR {} -> {}", input1, input2, self.id)
+                }
+                Gate::SLL { input, shift } => {
+                    write!(f, "{} LSHIFT {} -> {}", input, shift, self.id)
+                }
+                Gate::SLR { input, shift } => {
+                    write!(f, "{} RSHIFT {} -> {}", input, shift, self.id)
+                }
+                Gate::Not { input } => {
+                    write!(f, "NOT {} -> {}", input, self.id)
+                }
+            },
+        }
+    }
+}
 
 // #[cfg(test)]
 // mod tests {
