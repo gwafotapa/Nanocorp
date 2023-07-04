@@ -1,66 +1,66 @@
 use crate::{error::Error, wire::WireId};
 
 pub enum Gate {
-    And { wire1: WireId, wire2: WireId },
-    Or { wire1: WireId, wire2: WireId },
-    SLL { wire: WireId, shift: u8 },
-    SLR { wire: WireId, shift: u8 },
-    Not { wire: WireId },
+    And { input1: WireId, input2: WireId },
+    Or { input1: WireId, input2: WireId },
+    SLL { input: WireId, shift: u8 },
+    SLR { input: WireId, shift: u8 },
+    Not { input: WireId },
 }
 
 impl Gate {
-    pub fn and(wire1: impl Into<String>, wire2: impl Into<String>) -> Result<Self, Error> {
-        let wire1 = wire1.into();
-        let wire2 = wire2.into();
-        if !wire1.bytes().all(|b| b.is_ascii_lowercase()) {
-            Err(Error::WrongFormatId(wire1))
-        } else if !wire2.bytes().all(|b| b.is_ascii_lowercase()) {
-            Err(Error::WrongFormatId(wire2))
+    pub fn and(input1: impl Into<String>, input2: impl Into<String>) -> Result<Self, Error> {
+        let input1 = input1.into();
+        let input2 = input2.into();
+        if !input1.bytes().all(|b| b.is_ascii_lowercase()) {
+            Err(Error::WrongFormatId(input1))
+        } else if !input2.bytes().all(|b| b.is_ascii_lowercase()) {
+            Err(Error::WrongFormatId(input2))
         } else {
-            Ok(Self::And { wire1, wire2 })
+            Ok(Self::And { input1, input2 })
         }
     }
 
-    pub fn or(wire1: impl Into<String>, wire2: impl Into<String>) -> Result<Self, Error> {
-        let wire1 = wire1.into();
-        let wire2 = wire2.into();
-        if !wire1.bytes().all(|b| b.is_ascii_lowercase()) {
-            Err(Error::WrongFormatId(wire1))
-        } else if !wire2.bytes().all(|b| b.is_ascii_lowercase()) {
-            Err(Error::WrongFormatId(wire2))
+    pub fn or(input1: impl Into<String>, input2: impl Into<String>) -> Result<Self, Error> {
+        let input1 = input1.into();
+        let input2 = input2.into();
+        if !input1.bytes().all(|b| b.is_ascii_lowercase()) {
+            Err(Error::WrongFormatId(input1))
+        } else if !input2.bytes().all(|b| b.is_ascii_lowercase()) {
+            Err(Error::WrongFormatId(input2))
         } else {
-            Ok(Self::Or { wire1, wire2 })
+            Ok(Self::Or { input1, input2 })
         }
     }
 
-    pub fn sll(wire: impl Into<String>, shift: u8) -> Result<Self, Error> {
-        let wire = wire.into();
-        if !wire.bytes().all(|b| b.is_ascii_lowercase()) {
-            Err(Error::WrongFormatId(wire))
+    pub fn sll(input: impl Into<String>, shift: u8) -> Result<Self, Error> {
+        let input = input.into();
+        if !input.bytes().all(|b| b.is_ascii_lowercase()) {
+            Err(Error::WrongFormatId(input))
         } else if shift > 15 {
             Err(Error::ShiftTooLarge(shift))
         } else {
-            Ok(Self::SLL { wire, shift })
+            Ok(Self::SLL { input, shift })
         }
     }
 
-    pub fn slr(wire: impl Into<String>, shift: u8) -> Result<Self, Error> {
-        let wire = wire.into();
-        if !wire.bytes().all(|b| b.is_ascii_lowercase()) {
-            Err(Error::WrongFormatId(wire))
+    pub fn slr(input: impl Into<String>, shift: u8) -> Result<Self, Error> {
+        let input = input.into();
+        if !input.bytes().all(|b| b.is_ascii_lowercase()) {
+            Err(Error::WrongFormatId(input))
         } else if shift > 15 {
             Err(Error::ShiftTooLarge(shift))
         } else {
-            Ok(Self::SLR { wire, shift })
+            Ok(Self::SLR { input, shift })
         }
     }
 
-    pub fn not(wire: impl Into<String>) -> Result<Self, Error> {
-        let wire = wire.into();
-        if wire.bytes().all(|b| b.is_ascii_lowercase()) {
-            Ok(Self::Not { wire })
+    pub fn not(input: impl Into<String>) -> Result<Self, Error> {
+        let input = input.into();
+        if input.bytes().all(|b| b.is_ascii_lowercase()) {
+            Ok(Self::Not { input })
         } else {
-            Err(Error::WrongFormatId(wire))
+            Err(Error::WrongFormatId(input))
         }
     }
 }
