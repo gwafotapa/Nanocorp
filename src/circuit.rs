@@ -78,10 +78,10 @@ impl Circuit {
     pub fn add_gate_and_value(
         &mut self,
         output: impl Into<String>,
-        input1: impl Into<String>,
-        input2: u16,
+        input: impl Into<String>,
+        value: u16,
     ) -> Result<(), Error> {
-        let gate = Gate::and_value(input1, input2)?;
+        let gate = Gate::and_value(input, value)?;
         let wire = Wire::from_gate(output, gate)?;
         self.add(wire)?;
         Ok(())
@@ -102,10 +102,10 @@ impl Circuit {
     pub fn add_gate_or_value(
         &mut self,
         output: impl Into<String>,
-        input1: impl Into<String>,
-        input2: u16,
+        input: impl Into<String>,
+        value: u16,
     ) -> Result<(), Error> {
-        let gate = Gate::or_value(input1, input2)?;
+        let gate = Gate::or_value(input, value)?;
         let wire = Wire::from_gate(output, gate)?;
         self.add(wire)?;
         Ok(())
@@ -155,12 +155,12 @@ impl Circuit {
             if let Some(wire) = self.wires.get(id) {
                 match &wire.input {
                     WireInput::Value(value) => {
-                        self.wires.get_mut(id).unwrap().signal = Some(*value); // TODO: add fn
+                        self.set_signal(id, Some(*value));
                         ids.pop();
                     }
                     WireInput::Wire(input_id) => {
                         if let Some(signal) = self.get_signal(input_id) {
-                            self.wires.get_mut(id).unwrap().signal = Some(signal);
+                            self.set_signal(id, Some(signal));
                             ids.pop();
                         } else {
                             ids.push(input_id.to_string());
@@ -170,8 +170,7 @@ impl Circuit {
                         Gate::And { input1, input2 } => {
                             if let Some(signal1) = self.get_signal(input1) {
                                 if let Some(signal2) = self.get_signal(input2) {
-                                    self.wires.get_mut(id).unwrap().signal =
-                                        Some(signal1 & signal2);
+                                    self.set_signal(id, Some(signal1 & signal2));
                                     ids.pop();
                                 } else {
                                     ids.push(input2.to_string());
@@ -183,19 +182,18 @@ impl Circuit {
                                 }
                             }
                         }
-                        Gate::AndValue { input1, input2 } => {
-                            if let Some(signal1) = self.get_signal(input1) {
-                                self.wires.get_mut(id).unwrap().signal = Some(signal1 & input2);
+                        Gate::AndValue { input, value } => {
+                            if let Some(signal1) = self.get_signal(input) {
+                                self.set_signal(id, Some(signal1 & value));
                                 ids.pop();
                             } else {
-                                ids.push(input1.to_string());
+                                ids.push(input.to_string());
                             }
                         }
                         Gate::Or { input1, input2 } => {
                             if let Some(signal1) = self.get_signal(input1) {
                                 if let Some(signal2) = self.get_signal(input2) {
-                                    self.wires.get_mut(id).unwrap().signal =
-                                        Some(signal1 | signal2);
+                                    self.set_signal(id, Some(signal1 | signal2));
                                     ids.pop();
                                 } else {
                                     ids.push(input2.to_string());
@@ -207,17 +205,17 @@ impl Circuit {
                                 }
                             }
                         }
-                        Gate::OrValue { input1, input2 } => {
-                            if let Some(signal1) = self.get_signal(input1) {
-                                self.wires.get_mut(id).unwrap().signal = Some(signal1 | input2);
+                        Gate::OrValue { input, value } => {
+                            if let Some(signal1) = self.get_signal(input) {
+                                self.set_signal(id, Some(signal1 | value));
                                 ids.pop();
                             } else {
-                                ids.push(input1.to_string());
+                                ids.push(input.to_string());
                             }
                         }
                         Gate::SLL { input, shift } => {
                             if let Some(signal) = self.get_signal(input) {
-                                self.wires.get_mut(id).unwrap().signal = Some(signal << shift);
+                                self.set_signal(id, Some(signal << shift));
                                 ids.pop();
                             } else {
                                 ids.push(input.to_string());
@@ -225,7 +223,7 @@ impl Circuit {
                         }
                         Gate::SLR { input, shift } => {
                             if let Some(signal) = self.get_signal(input) {
-                                self.wires.get_mut(id).unwrap().signal = Some(signal >> shift);
+                                self.set_signal(id, Some(signal >> shift));
                                 ids.pop();
                             } else {
                                 ids.push(input.to_string());
@@ -233,7 +231,7 @@ impl Circuit {
                         }
                         Gate::Not { input } => {
                             if let Some(signal) = self.get_signal(input) {
-                                self.wires.get_mut(id).unwrap().signal = Some(!signal);
+                                self.set_signal(id, Some(!signal));
                                 ids.pop();
                             } else {
                                 ids.push(input.to_string());
@@ -252,6 +250,19 @@ impl Circuit {
 
     pub fn get_signal(&self, id: &str) -> Option<u16> {
         self.wires.get(id).and_then(|w| w.signal)
+    }
+
+    fn set_signal(&mut self, id: &str, signal: Option<u16>) -> bool {
+        // self.wires
+        //     .get_mut(id)
+        //     .map(|wire| wire.signal = signal)
+        //     .is_some()
+        if let Some(wire) = self.wires.get_mut(id) {
+            wire.signal = signal;
+            true
+        } else {
+            false
+        }
     }
 }
 

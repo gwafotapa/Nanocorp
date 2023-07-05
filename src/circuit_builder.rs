@@ -78,10 +78,10 @@ impl CircuitBuilder {
     pub fn add_gate_and_value(
         &mut self,
         output: impl Into<String>,
-        input1: impl Into<String>,
-        input2: u16,
+        input: impl Into<String>,
+        value: u16,
     ) -> &mut CircuitBuilder {
-        let wire = Wire::from_gate_and_value(output, input1, input2).unwrap();
+        let wire = Wire::from_gate_and_value(output, input, value).unwrap();
         self.add(wire);
         self
     }
@@ -100,10 +100,10 @@ impl CircuitBuilder {
     pub fn add_gate_or_value(
         &mut self,
         output: impl Into<String>,
-        input1: impl Into<String>,
-        input2: u16,
+        input: impl Into<String>,
+        value: u16,
     ) -> &mut CircuitBuilder {
-        let wire = Wire::from_gate_or_value(output, input1, input2).unwrap();
+        let wire = Wire::from_gate_or_value(output, input, value).unwrap();
         self.add(wire);
         self
     }

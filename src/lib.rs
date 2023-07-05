@@ -8,5 +8,5 @@ pub mod gate;
 pub mod circuit_builder;
 // pub mod component;
 pub mod error;
-pub mod signal;
+// pub mod signal;
 pub mod wire;

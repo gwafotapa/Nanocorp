@@ -90,10 +90,10 @@ impl Wire {
 
     pub fn from_gate_and_value(
         id: impl Into<String>,
-        input1: impl Into<String>,
-        input2: u16,
+        input: impl Into<String>,
+        value: u16,
     ) -> Result<Self, Error> {
-        let gate = Gate::and_value(input1, input2)?;
+        let gate = Gate::and_value(input, value)?;
         Wire::from_gate(id, gate)
     }
 
@@ -109,10 +109,10 @@ impl Wire {
     pub fn from_gate_or_value(
         // TODO: test
         id: impl Into<String>,
-        input1: impl Into<String>,
-        input2: u16,
+        input: impl Into<String>,
+        value: u16,
     ) -> Result<Self, Error> {
-        let gate = Gate::or_value(input1, input2)?;
+        let gate = Gate::or_value(input, value)?;
         Wire::from_gate(id, gate)
     }
 
@@ -192,14 +192,14 @@ impl fmt::Display for Wire {
                 Gate::And { input1, input2 } => {
                     write!(f, "{} AND {} -> {}", input1, input2, self.id)
                 }
-                Gate::AndValue { input1, input2 } => {
-                    write!(f, "{} AND {} -> {}", input1, input2, self.id)
+                Gate::AndValue { input, value } => {
+                    write!(f, "{} AND {} -> {}", input, value, self.id)
                 }
                 Gate::Or { input1, input2 } => {
                     write!(f, "{} OR {} -> {}", input1, input2, self.id)
                 }
-                Gate::OrValue { input1, input2 } => {
-                    write!(f, "{} OR {} -> {}", input1, input2, self.id)
+                Gate::OrValue { input, value } => {
+                    write!(f, "{} OR {} -> {}", input, value, self.id)
                 }
                 Gate::SLL { input, shift } => {
                     write!(f, "{} LSHIFT {} -> {}", input, shift, self.id)
