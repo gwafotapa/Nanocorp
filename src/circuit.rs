@@ -265,10 +265,10 @@ impl Circuit {
         }
     }
 
-    // pub fn read_from_file(path: impl AsRef<Path>) -> Result<Self, Error> {
-    //     let s = fs::read_to_string(path).unwrap();
-    //     Ok(Self::from(&s))
-    // }
+    pub fn read<P: AsRef<Path>>(path: P) -> Result<Self, Error> {
+        let s = fs::read_to_string(path)?;
+        Ok(Self::from(&s)) // TODO: implement and use try_from
+    }
 }
 
 impl fmt::Display for Circuit {
@@ -753,6 +753,12 @@ mod tests {
 		 he RSHIFT 5 -> hh";
         let mut c = Circuit::from(s);
         c.compute_signals();
+        // println!("{}", c);
+    }
+
+    #[test]
+    fn read_example_input() {
+        let c = Circuit::read("instructions/input.txtd").unwrap();
         println!("{}", c);
     }
 }
