@@ -278,7 +278,7 @@ impl fmt::Display for Circuit {
 impl From<&str> for Circuit {
     fn from(s: &str) -> Self {
         let mut circuit = Circuit::new();
-        for wire in s.split('\n') {
+        for wire in s.trim_end().split('\n') {
             circuit.add(wire.into()).unwrap();
         }
         circuit

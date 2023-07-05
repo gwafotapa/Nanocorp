@@ -194,4 +194,19 @@ mod tests {
         assert_eq!(circuit.get_signal("x"), Some(123));
         assert_eq!(circuit.get_signal("y"), Some(456));
     }
+
+    #[test]
+    fn xor() {
+        let mut circuit = CircuitBuilder::new()
+            .add_wire_with_value("x", 0xbae5)
+            .add_wire_with_value("y", 0x10e6)
+            .add_gate_or("xoy", "x", "y")
+            .add_gate_and("xay", "x", "y")
+            .add_gate_not("nxay", "xay")
+            .add_gate_and("xor", "xoy", "nxay")
+            .build();
+
+        circuit.compute_signals();
+        assert_eq!(circuit.get_signal("xor"), Some(0xaa03));
+    }
 }
