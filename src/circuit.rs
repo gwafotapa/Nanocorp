@@ -75,6 +75,18 @@ impl Circuit {
         Ok(())
     }
 
+    pub fn add_gate_and_value(
+        &mut self,
+        output: impl Into<String>,
+        input1: impl Into<String>,
+        input2: u16,
+    ) -> Result<(), Error> {
+        let gate = Gate::and_value(input1, input2)?;
+        let wire = Wire::from_gate(output, gate)?;
+        self.add(wire)?;
+        Ok(())
+    }
+
     pub fn add_gate_or(
         &mut self,
         output: impl Into<String>,
@@ -157,6 +169,14 @@ impl Circuit {
                                 if self.get_signal(input2).is_none() {
                                     ids.push(input2.to_string());
                                 }
+                            }
+                        }
+                        Gate::AndValue { input1, input2 } => {
+                            if let Some(signal1) = self.get_signal(input1) {
+                                self.wires.get_mut(id).unwrap().signal = Some(signal1 & input2);
+                                ids.pop();
+                            } else {
+                                ids.push(input1.to_string());
                             }
                         }
                         Gate::Or { input1, input2 } => {
@@ -356,347 +376,347 @@ mod tests {
 
     #[test]
     fn input_example() {
-        let s = "lf AND lq -> ls
-iu RSHIFT 1 -> jn
-bo OR bu -> bv
-gj RSHIFT 1 -> hc
-et RSHIFT 2 -> eu
-bv AND bx -> by
-is OR it -> iu
-b OR n -> o
-gf OR ge -> gg
-NOT kt -> ku
-ea AND eb -> ed
-kl OR kr -> ks
-hi AND hk -> hl
-au AND av -> ax
-lf RSHIFT 2 -> lg
-dd RSHIFT 3 -> df
-eu AND fa -> fc
-df AND dg -> di
-ip LSHIFT 15 -> it
-NOT el -> em
-et OR fe -> ff
-fj LSHIFT 15 -> fn
-t OR s -> u
-ly OR lz -> ma
-ko AND kq -> kr
-NOT fx -> fy
-et RSHIFT 1 -> fm
-eu OR fa -> fb
-dd RSHIFT 2 -> de
-NOT go -> gp
-kb AND kd -> ke
-hg OR hh -> hi
-jm LSHIFT 1 -> kg
-NOT cn -> co
-jp RSHIFT 2 -> jq
-jp RSHIFT 5 -> js
-1 AND io -> ip
-eo LSHIFT 15 -> es
-1 AND jj -> jk
-g AND i -> j
-ci RSHIFT 3 -> ck
-gn AND gp -> gq
-fs AND fu -> fv
-lj AND ll -> lm
-jk LSHIFT 15 -> jo
-iu RSHIFT 3 -> iw
-NOT ii -> ij
-1 AND cc -> cd
-bn RSHIFT 3 -> bp
-NOT gw -> gx
-NOT ft -> fu
-jn OR jo -> jp
-iv OR jb -> jc
-hv OR hu -> hw
-19138 -> b
-gj RSHIFT 5 -> gm
-hq AND hs -> ht
-dy RSHIFT 1 -> er
-ao OR an -> ap
-ld OR le -> lf
-bk LSHIFT 1 -> ce
-bz AND cb -> cc
-bi LSHIFT 15 -> bm
-il AND in -> io
-af AND ah -> ai
-as RSHIFT 1 -> bl
-lf RSHIFT 3 -> lh
-er OR es -> et
-NOT ax -> ay
-ci RSHIFT 1 -> db
-et AND fe -> fg
-lg OR lm -> ln
-k AND m -> n
-hz RSHIFT 2 -> ia
-kh LSHIFT 1 -> lb
-NOT ey -> ez
-NOT di -> dj
-dz OR ef -> eg
-lx -> a
-NOT iz -> ja
-gz LSHIFT 15 -> hd
-ce OR cd -> cf
-fq AND fr -> ft
-at AND az -> bb
-ha OR gz -> hb
-fp AND fv -> fx
-NOT gb -> gc
-ia AND ig -> ii
-gl OR gm -> gn
-0 -> c
-NOT ca -> cb
-bn RSHIFT 1 -> cg
-c LSHIFT 1 -> t
-iw OR ix -> iy
-kg OR kf -> kh
-dy OR ej -> ek
-km AND kn -> kp
-NOT fc -> fd
-hz RSHIFT 3 -> ib
-NOT dq -> dr
-NOT fg -> fh
-dy RSHIFT 2 -> dz
-kk RSHIFT 2 -> kl
-1 AND fi -> fj
-NOT hr -> hs
-jp RSHIFT 1 -> ki
-bl OR bm -> bn
-1 AND gy -> gz
-gr AND gt -> gu
-db OR dc -> dd
-de OR dk -> dl
-as RSHIFT 5 -> av
-lf RSHIFT 5 -> li
-hm AND ho -> hp
-cg OR ch -> ci
-gj AND gu -> gw
-ge LSHIFT 15 -> gi
-e OR f -> g
-fp OR fv -> fw
-fb AND fd -> fe
-cd LSHIFT 15 -> ch
-b RSHIFT 1 -> v
-at OR az -> ba
-bn RSHIFT 2 -> bo
-lh AND li -> lk
-dl AND dn -> do
-eg AND ei -> ej
-ex AND ez -> fa
-NOT kp -> kq
-NOT lk -> ll
-x AND ai -> ak
-jp OR ka -> kb
-NOT jd -> je
-iy AND ja -> jb
-jp RSHIFT 3 -> jr
-fo OR fz -> ga
-df OR dg -> dh
-gj RSHIFT 2 -> gk
-gj OR gu -> gv
-NOT jh -> ji
-ap LSHIFT 1 -> bj
-NOT ls -> lt
-ir LSHIFT 1 -> jl
-bn AND by -> ca
-lv LSHIFT 15 -> lz
-ba AND bc -> bd
-cy LSHIFT 15 -> dc
-ln AND lp -> lq
-x RSHIFT 1 -> aq
-gk OR gq -> gr
-NOT kx -> ky
-jg AND ji -> jj
-bn OR by -> bz
-fl LSHIFT 1 -> gf
-bp OR bq -> br
-he OR hp -> hq
-et RSHIFT 5 -> ew
-iu RSHIFT 2 -> iv
-gl AND gm -> go
-x OR ai -> aj
-hc OR hd -> he
-lg AND lm -> lo
-lh OR li -> lj
-da LSHIFT 1 -> du
-fo RSHIFT 2 -> fp
-gk AND gq -> gs
-bj OR bi -> bk
-lf OR lq -> lr
-cj AND cp -> cr
-hu LSHIFT 15 -> hy
-1 AND bh -> bi
-fo RSHIFT 3 -> fq
-NOT lo -> lp
-hw LSHIFT 1 -> iq
-dd RSHIFT 1 -> dw
-dt LSHIFT 15 -> dx
-dy AND ej -> el
-an LSHIFT 15 -> ar
-aq OR ar -> as
-1 AND r -> s
-fw AND fy -> fz
-NOT im -> in
-et RSHIFT 3 -> ev
-1 AND ds -> dt
-ec AND ee -> ef
-NOT ak -> al
-jl OR jk -> jm
-1 AND en -> eo
-lb OR la -> lc
-iu AND jf -> jh
-iu RSHIFT 5 -> ix
-bo AND bu -> bw
-cz OR cy -> da
-iv AND jb -> jd
-iw AND ix -> iz
-lf RSHIFT 1 -> ly
-iu OR jf -> jg
-NOT dm -> dn
-lw OR lv -> lx
-gg LSHIFT 1 -> ha
-lr AND lt -> lu
-fm OR fn -> fo
-he RSHIFT 3 -> hg
-aj AND al -> am
-1 AND kz -> la
-dy RSHIFT 5 -> eb
-jc AND je -> jf
-cm AND co -> cp
-gv AND gx -> gy
-ev OR ew -> ex
-jp AND ka -> kc
-fk OR fj -> fl
-dy RSHIFT 3 -> ea
-NOT bs -> bt
-NOT ag -> ah
-dz AND ef -> eh
-cf LSHIFT 1 -> cz
-NOT cv -> cw
-1 AND cx -> cy
-de AND dk -> dm
-ck AND cl -> cn
-x RSHIFT 5 -> aa
-dv LSHIFT 1 -> ep
-he RSHIFT 2 -> hf
-NOT bw -> bx
-ck OR cl -> cm
-bp AND bq -> bs
-as OR bd -> be
-he AND hp -> hr
-ev AND ew -> ey
-1 AND lu -> lv
-kk RSHIFT 3 -> km
-b AND n -> p
-NOT kc -> kd
-lc LSHIFT 1 -> lw
-km OR kn -> ko
-id AND if -> ig
-ih AND ij -> ik
-jr AND js -> ju
-ci RSHIFT 5 -> cl
-hz RSHIFT 1 -> is
-1 AND ke -> kf
-NOT gs -> gt
-aw AND ay -> az
-x RSHIFT 2 -> y
-ab AND ad -> ae
-ff AND fh -> fi
-ci AND ct -> cv
-eq LSHIFT 1 -> fk
-gj RSHIFT 3 -> gl
-u LSHIFT 1 -> ao
-NOT bb -> bc
-NOT hj -> hk
-kw AND ky -> kz
-as AND bd -> bf
-dw OR dx -> dy
-br AND bt -> bu
-kk AND kv -> kx
-ep OR eo -> eq
-he RSHIFT 1 -> hx
-ki OR kj -> kk
-NOT ju -> jv
-ek AND em -> en
-kk RSHIFT 5 -> kn
-NOT eh -> ei
-hx OR hy -> hz
-ea OR eb -> ec
-s LSHIFT 15 -> w
-fo RSHIFT 1 -> gh
-kk OR kv -> kw
-bn RSHIFT 5 -> bq
-NOT ed -> ee
-1 AND ht -> hu
-cu AND cw -> cx
-b RSHIFT 5 -> f
-kl AND kr -> kt
-iq OR ip -> ir
-ci RSHIFT 2 -> cj
-cj OR cp -> cq
-o AND q -> r
-dd RSHIFT 5 -> dg
-b RSHIFT 2 -> d
-ks AND ku -> kv
-b RSHIFT 3 -> e
-d OR j -> k
-NOT p -> q
-NOT cr -> cs
-du OR dt -> dv
-kf LSHIFT 15 -> kj
-NOT ac -> ad
-fo RSHIFT 5 -> fr
-hz OR ik -> il
-jx AND jz -> ka
-gh OR gi -> gj
-kk RSHIFT 1 -> ld
-hz RSHIFT 5 -> ic
-as RSHIFT 2 -> at
-NOT jy -> jz
-1 AND am -> an
-ci OR ct -> cu
-hg AND hh -> hj
-jq OR jw -> jx
-v OR w -> x
-la LSHIFT 15 -> le
-dh AND dj -> dk
-dp AND dr -> ds
-jq AND jw -> jy
-au OR av -> aw
-NOT bf -> bg
-z OR aa -> ab
-ga AND gc -> gd
-hz AND ik -> im
-jt AND jv -> jw
-z AND aa -> ac
-jr OR js -> jt
-hb LSHIFT 1 -> hv
-hf OR hl -> hm
-ib OR ic -> id
-fq OR fr -> fs
-cq AND cs -> ct
-ia OR ig -> ih
-dd OR do -> dp
-d AND j -> l
-ib AND ic -> ie
-as RSHIFT 3 -> au
-be AND bg -> bh
-dd AND do -> dq
-NOT l -> m
-1 AND gd -> ge
-y AND ae -> ag
-fo AND fz -> gb
-NOT ie -> if
-e AND f -> h
-x RSHIFT 3 -> z
-y OR ae -> af
-hf AND hl -> hn
-NOT h -> i
-NOT hn -> ho
-he RSHIFT 5 -> hh
-";
-        // let c = Circuit::from(s);
-        // println!("{}", c);
+        let s = "lf AND lq -> ls\n\
+		 iu RSHIFT 1 -> jn\n\
+		 bo OR bu -> bv\n\
+		 gj RSHIFT 1 -> hc\n\
+		 et RSHIFT 2 -> eu\n\
+		 bv AND bx -> by\n\
+		 is OR it -> iu\n\
+		 b OR n -> o\n\
+		 gf OR ge -> gg\n\
+		 NOT kt -> ku\n\
+		 ea AND eb -> ed\n\
+		 kl OR kr -> ks\n\
+		 hi AND hk -> hl\n\
+		 au AND av -> ax\n\
+		 lf RSHIFT 2 -> lg\n\
+		 dd RSHIFT 3 -> df\n\
+		 eu AND fa -> fc\n\
+		 df AND dg -> di\n\
+		 ip LSHIFT 15 -> it\n\
+		 NOT el -> em\n\
+		 et OR fe -> ff\n\
+		 fj LSHIFT 15 -> fn\n\
+		 t OR s -> u\n\
+		 ly OR lz -> ma\n\
+		 ko AND kq -> kr\n\
+		 NOT fx -> fy\n\
+		 et RSHIFT 1 -> fm\n\
+		 eu OR fa -> fb\n\
+		 dd RSHIFT 2 -> de\n\
+		 NOT go -> gp\n\
+		 kb AND kd -> ke\n\
+		 hg OR hh -> hi\n\
+		 jm LSHIFT 1 -> kg\n\
+		 NOT cn -> co\n\
+		 jp RSHIFT 2 -> jq\n\
+		 jp RSHIFT 5 -> js\n\
+		 1 AND io -> ip\n\
+		 eo LSHIFT 15 -> es\n\
+		 1 AND jj -> jk\n\
+		 g AND i -> j\n\
+		 ci RSHIFT 3 -> ck\n\
+		 gn AND gp -> gq\n\
+		 fs AND fu -> fv\n\
+		 lj AND ll -> lm\n\
+		 jk LSHIFT 15 -> jo\n\
+		 iu RSHIFT 3 -> iw\n\
+		 NOT ii -> ij\n\
+		 1 AND cc -> cd\n\
+		 bn RSHIFT 3 -> bp\n\
+		 NOT gw -> gx\n\
+		 NOT ft -> fu\n\
+		 jn OR jo -> jp\n\
+		 iv OR jb -> jc\n\
+		 hv OR hu -> hw\n\
+		 19138 -> b\n\
+		 gj RSHIFT 5 -> gm\n\
+		 hq AND hs -> ht\n\
+		 dy RSHIFT 1 -> er\n\
+		 ao OR an -> ap\n\
+		 ld OR le -> lf\n\
+		 bk LSHIFT 1 -> ce\n\
+		 bz AND cb -> cc\n\
+		 bi LSHIFT 15 -> bm\n\
+		 il AND in -> io\n\
+		 af AND ah -> ai\n\
+		 as RSHIFT 1 -> bl\n\
+		 lf RSHIFT 3 -> lh\n\
+		 er OR es -> et\n\
+		 NOT ax -> ay\n\
+		 ci RSHIFT 1 -> db\n\
+		 et AND fe -> fg\n\
+		 lg OR lm -> ln\n\
+		 k AND m -> n\n\
+		 hz RSHIFT 2 -> ia\n\
+		 kh LSHIFT 1 -> lb\n\
+		 NOT ey -> ez\n\
+		 NOT di -> dj\n\
+		 dz OR ef -> eg\n\
+		 lx -> a\n\
+		 NOT iz -> ja\n\
+		 gz LSHIFT 15 -> hd\n\
+		 ce OR cd -> cf\n\
+		 fq AND fr -> ft\n\
+		 at AND az -> bb\n\
+		 ha OR gz -> hb\n\
+		 fp AND fv -> fx\n\
+		 NOT gb -> gc\n\
+		 ia AND ig -> ii\n\
+		 gl OR gm -> gn\n\
+		 0 -> c\n\
+		 NOT ca -> cb\n\
+		 bn RSHIFT 1 -> cg\n\
+		 c LSHIFT 1 -> t\n\
+		 iw OR ix -> iy\n\
+		 kg OR kf -> kh\n\
+		 dy OR ej -> ek\n\
+		 km AND kn -> kp\n\
+		 NOT fc -> fd\n\
+		 hz RSHIFT 3 -> ib\n\
+		 NOT dq -> dr\n\
+		 NOT fg -> fh\n\
+		 dy RSHIFT 2 -> dz\n\
+		 kk RSHIFT 2 -> kl\n\
+		 1 AND fi -> fj\n\
+		 NOT hr -> hs\n\
+		 jp RSHIFT 1 -> ki\n\
+		 bl OR bm -> bn\n\
+		 1 AND gy -> gz\n\
+		 gr AND gt -> gu\n\
+		 db OR dc -> dd\n\
+		 de OR dk -> dl\n\
+		 as RSHIFT 5 -> av\n\
+		 lf RSHIFT 5 -> li\n\
+		 hm AND ho -> hp\n\
+		 cg OR ch -> ci\n\
+		 gj AND gu -> gw\n\
+		 ge LSHIFT 15 -> gi\n\
+		 e OR f -> g\n\
+		 fp OR fv -> fw\n\
+		 fb AND fd -> fe\n\
+		 cd LSHIFT 15 -> ch\n\
+		 b RSHIFT 1 -> v\n\
+		 at OR az -> ba\n\
+		 bn RSHIFT 2 -> bo\n\
+		 lh AND li -> lk\n\
+		 dl AND dn -> do\n\
+		 eg AND ei -> ej\n\
+		 ex AND ez -> fa\n\
+		 NOT kp -> kq\n\
+		 NOT lk -> ll\n\
+		 x AND ai -> ak\n\
+		 jp OR ka -> kb\n\
+		 NOT jd -> je\n\
+		 iy AND ja -> jb\n\
+		 jp RSHIFT 3 -> jr\n\
+		 fo OR fz -> ga\n\
+		 df OR dg -> dh\n\
+		 gj RSHIFT 2 -> gk\n\
+		 gj OR gu -> gv\n\
+		 NOT jh -> ji\n\
+		 ap LSHIFT 1 -> bj\n\
+		 NOT ls -> lt\n\
+		 ir LSHIFT 1 -> jl\n\
+		 bn AND by -> ca\n\
+		 lv LSHIFT 15 -> lz\n\
+		 ba AND bc -> bd\n\
+		 cy LSHIFT 15 -> dc\n\
+		 ln AND lp -> lq\n\
+		 x RSHIFT 1 -> aq\n\
+		 gk OR gq -> gr\n\
+		 NOT kx -> ky\n\
+		 jg AND ji -> jj\n\
+		 bn OR by -> bz\n\
+		 fl LSHIFT 1 -> gf\n\
+		 bp OR bq -> br\n\
+		 he OR hp -> hq\n\
+		 et RSHIFT 5 -> ew\n\
+		 iu RSHIFT 2 -> iv\n\
+		 gl AND gm -> go\n\
+		 x OR ai -> aj\n\
+		 hc OR hd -> he\n\
+		 lg AND lm -> lo\n\
+		 lh OR li -> lj\n\
+		 da LSHIFT 1 -> du\n\
+		 fo RSHIFT 2 -> fp\n\
+		 gk AND gq -> gs\n\
+		 bj OR bi -> bk\n\
+		 lf OR lq -> lr\n\
+		 cj AND cp -> cr\n\
+		 hu LSHIFT 15 -> hy\n\
+		 1 AND bh -> bi\n\
+		 fo RSHIFT 3 -> fq\n\
+		 NOT lo -> lp\n\
+		 hw LSHIFT 1 -> iq\n\
+		 dd RSHIFT 1 -> dw\n\
+		 dt LSHIFT 15 -> dx\n\
+		 dy AND ej -> el\n\
+		 an LSHIFT 15 -> ar\n\
+		 aq OR ar -> as\n\
+		 1 AND r -> s\n\
+		 fw AND fy -> fz\n\
+		 NOT im -> in\n\
+		 et RSHIFT 3 -> ev\n\
+		 1 AND ds -> dt\n\
+		 ec AND ee -> ef\n\
+		 NOT ak -> al\n\
+		 jl OR jk -> jm\n\
+		 1 AND en -> eo\n\
+		 lb OR la -> lc\n\
+		 iu AND jf -> jh\n\
+		 iu RSHIFT 5 -> ix\n\
+		 bo AND bu -> bw\n\
+		 cz OR cy -> da\n\
+		 iv AND jb -> jd\n\
+		 iw AND ix -> iz\n\
+		 lf RSHIFT 1 -> ly\n\
+		 iu OR jf -> jg\n\
+		 NOT dm -> dn\n\
+		 lw OR lv -> lx\n\
+		 gg LSHIFT 1 -> ha\n\
+		 lr AND lt -> lu\n\
+		 fm OR fn -> fo\n\
+		 he RSHIFT 3 -> hg\n\
+		 aj AND al -> am\n\
+		 1 AND kz -> la\n\
+		 dy RSHIFT 5 -> eb\n\
+		 jc AND je -> jf\n\
+		 cm AND co -> cp\n\
+		 gv AND gx -> gy\n\
+		 ev OR ew -> ex\n\
+		 jp AND ka -> kc\n\
+		 fk OR fj -> fl\n\
+		 dy RSHIFT 3 -> ea\n\
+		 NOT bs -> bt\n\
+		 NOT ag -> ah\n\
+		 dz AND ef -> eh\n\
+		 cf LSHIFT 1 -> cz\n\
+		 NOT cv -> cw\n\
+		 1 AND cx -> cy\n\
+		 de AND dk -> dm\n\
+		 ck AND cl -> cn\n\
+		 x RSHIFT 5 -> aa\n\
+		 dv LSHIFT 1 -> ep\n\
+		 he RSHIFT 2 -> hf\n\
+		 NOT bw -> bx\n\
+		 ck OR cl -> cm\n\
+		 bp AND bq -> bs\n\
+		 as OR bd -> be\n\
+		 he AND hp -> hr\n\
+		 ev AND ew -> ey\n\
+		 1 AND lu -> lv\n\
+		 kk RSHIFT 3 -> km\n\
+		 b AND n -> p\n\
+		 NOT kc -> kd\n\
+		 lc LSHIFT 1 -> lw\n\
+		 km OR kn -> ko\n\
+		 id AND if -> ig\n\
+		 ih AND ij -> ik\n\
+		 jr AND js -> ju\n\
+		 ci RSHIFT 5 -> cl\n\
+		 hz RSHIFT 1 -> is\n\
+		 1 AND ke -> kf\n\
+		 NOT gs -> gt\n\
+		 aw AND ay -> az\n\
+		 x RSHIFT 2 -> y\n\
+		 ab AND ad -> ae\n\
+		 ff AND fh -> fi\n\
+		 ci AND ct -> cv\n\
+		 eq LSHIFT 1 -> fk\n\
+		 gj RSHIFT 3 -> gl\n\
+		 u LSHIFT 1 -> ao\n\
+		 NOT bb -> bc\n\
+		 NOT hj -> hk\n\
+		 kw AND ky -> kz\n\
+		 as AND bd -> bf\n\
+		 dw OR dx -> dy\n\
+		 br AND bt -> bu\n\
+		 kk AND kv -> kx\n\
+		 ep OR eo -> eq\n\
+		 he RSHIFT 1 -> hx\n\
+		 ki OR kj -> kk\n\
+		 NOT ju -> jv\n\
+		 ek AND em -> en\n\
+		 kk RSHIFT 5 -> kn\n\
+		 NOT eh -> ei\n\
+		 hx OR hy -> hz\n\
+		 ea OR eb -> ec\n\
+		 s LSHIFT 15 -> w\n\
+		 fo RSHIFT 1 -> gh\n\
+		 kk OR kv -> kw\n\
+		 bn RSHIFT 5 -> bq\n\
+		 NOT ed -> ee\n\
+		 1 AND ht -> hu\n\
+		 cu AND cw -> cx\n\
+		 b RSHIFT 5 -> f\n\
+		 kl AND kr -> kt\n\
+		 iq OR ip -> ir\n\
+		 ci RSHIFT 2 -> cj\n\
+		 cj OR cp -> cq\n\
+		 o AND q -> r\n\
+		 dd RSHIFT 5 -> dg\n\
+		 b RSHIFT 2 -> d\n\
+		 ks AND ku -> kv\n\
+		 b RSHIFT 3 -> e\n\
+		 d OR j -> k\n\
+		 NOT p -> q\n\
+		 NOT cr -> cs\n\
+		 du OR dt -> dv\n\
+		 kf LSHIFT 15 -> kj\n\
+		 NOT ac -> ad\n\
+		 fo RSHIFT 5 -> fr\n\
+		 hz OR ik -> il\n\
+		 jx AND jz -> ka\n\
+		 gh OR gi -> gj\n\
+		 kk RSHIFT 1 -> ld\n\
+		 hz RSHIFT 5 -> ic\n\
+		 as RSHIFT 2 -> at\n\
+		 NOT jy -> jz\n\
+		 1 AND am -> an\n\
+		 ci OR ct -> cu\n\
+		 hg AND hh -> hj\n\
+		 jq OR jw -> jx\n\
+		 v OR w -> x\n\
+		 la LSHIFT 15 -> le\n\
+		 dh AND dj -> dk\n\
+		 dp AND dr -> ds\n\
+		 jq AND jw -> jy\n\
+		 au OR av -> aw\n\
+		 NOT bf -> bg\n\
+		 z OR aa -> ab\n\
+		 ga AND gc -> gd\n\
+		 hz AND ik -> im\n\
+		 jt AND jv -> jw\n\
+		 z AND aa -> ac\n\
+		 jr OR js -> jt\n\
+		 hb LSHIFT 1 -> hv\n\
+		 hf OR hl -> hm\n\
+		 ib OR ic -> id\n\
+		 fq OR fr -> fs\n\
+		 cq AND cs -> ct\n\
+		 ia OR ig -> ih\n\
+		 dd OR do -> dp\n\
+		 d AND j -> l\n\
+		 ib AND ic -> ie\n\
+		 as RSHIFT 3 -> au\n\
+		 be AND bg -> bh\n\
+		 dd AND do -> dq\n\
+		 NOT l -> m\n\
+		 1 AND gd -> ge\n\
+		 y AND ae -> ag\n\
+		 fo AND fz -> gb\n\
+		 NOT ie -> if\n\
+		 e AND f -> h\n\
+		 x RSHIFT 3 -> z\n\
+		 y OR ae -> af\n\
+		 hf AND hl -> hn\n\
+		 NOT h -> i\n\
+		 NOT hn -> ho\n\
+		 he RSHIFT 5 -> hh";
+        let mut c = Circuit::from(s);
+        c.compute_signals();
+        println!("{}", c);
     }
 }

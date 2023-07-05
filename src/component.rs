@@ -12,53 +12,57 @@ pub struct Component {
 
 pub enum ComponentKind {
     Wire {
-        source: WireSource,
+        input: ComponentInput,
     },
     GateAnd {
-        source1: ComponentId,
-        source2: ComponentId,
+        input1: ComponentInput,
+        input2: ComponentInput,
     },
     GateOr {
-        source1: ComponentId,
-        source2: ComponentId,
+        input1: ComponentInput,
+        input2: ComponentInput,
     },
     GateNot {
-        source: ComponentId,
+        input: ComponentInput,
     },
     GateSLL {
         // TODO: GateLShift ?
-        source: ComponentId,
+        input: ComponentInput,
         shift: u8,
     },
     GateSLR {
-        source: ComponentId,
+        input: ComponentInput,
         shift: u8,
     },
 }
 
-pub enum WireSource {
+pub enum ComponentInput {
     Value(u16),
     Id(ComponentId),
 }
 
 impl Component {
-    pub fn new_wire_with_value(id: impl Into<String>, value: u16) -> Result<Self, Error> {
-        Self::new_wire(id, WireSource::Value(value))
+    // pub fn new(id: impl Into<String>, kind: ComponentKind) -> Result<Self, Error> {
+    // 	let id = id.into();
+    // }
+
+    pub fn wire_with_value(id: impl Into<String>, value: u16) -> Result<Self, Error> {
+        Self::wire(id, ComponentInput::Value(value))
     }
 
-    pub fn new_wire_from_component(
+    pub fn wire_from_component(
         id: impl Into<String>,
-        source_id: impl Into<String>,
+        input_id: impl Into<String>,
     ) -> Result<Self, Error> {
-        Self::new_wire(id, WireSource::Id(source_id.into()))
+        Self::wire(id, ComponentInput::Id(input_id.into()))
     }
 
-    pub fn new_wire(id: impl Into<String>, source: WireSource) -> Result<Self, Error> {
+    pub fn wire(id: impl Into<String>, input: ComponentInput) -> Result<Self, Error> {
         let id = id.into();
         if id.bytes().all(|b| b.is_ascii_lowercase()) {
             Ok(Self {
                 id: id.into(),
-                kind: ComponentKind::Wire { source },
+                kind: ComponentKind::Wire { input },
                 signal: None,
             })
         } else {
@@ -66,18 +70,18 @@ impl Component {
         }
     }
 
-    pub fn new_gate_and(
+    pub fn gate_and(
         id: impl Into<String>,
-        source1: impl Into<String>,
-        source2: impl Into<String>,
+        input1: impl Into<String>,
+        input2: impl Into<String>,
     ) -> Result<Self, Error> {
         let id = id.into();
         if id.bytes().all(|b| b.is_ascii_uppercase()) {
             Ok(Self {
                 id,
                 kind: ComponentKind::GateAnd {
-                    source1: source1.into(),
-                    source2: source2.into(),
+                    input1: input1.into(),
+                    input2: input2.into(),
                 },
                 signal: None,
             })
@@ -86,18 +90,18 @@ impl Component {
         }
     }
 
-    pub fn new_gate_or(
+    pub fn gate_or(
         id: impl Into<String>,
-        source1: impl Into<String>,
-        source2: impl Into<String>,
+        input1: impl Into<String>,
+        input2: impl Into<String>,
     ) -> Result<Self, Error> {
         let id = id.into();
         if id.bytes().all(|b| b.is_ascii_uppercase()) {
             Ok(Self {
                 id,
                 kind: ComponentKind::GateOr {
-                    source1: source1.into(),
-                    source2: source2.into(),
+                    input1: input1.into(),
+                    input2: input2.into(),
                 },
                 signal: None,
             })
@@ -106,9 +110,9 @@ impl Component {
         }
     }
 
-    pub fn new_gate_sll(
+    pub fn gate_sll(
         id: impl Into<String>,
-        source: impl Into<String>,
+        input: impl Into<String>,
         shift: u8,
     ) -> Result<Self, Error> {
         let id = id.into();
@@ -120,7 +124,7 @@ impl Component {
             Ok(Self {
                 id,
                 kind: ComponentKind::GateSLL {
-                    source: source.into(),
+                    input: input.into(),
                     shift,
                 },
                 signal: None,
@@ -128,9 +132,9 @@ impl Component {
         }
     }
 
-    pub fn new_gate_slr(
+    pub fn gate_slr(
         id: impl Into<String>,
-        source: impl Into<String>,
+        input: impl Into<String>,
         shift: u8,
     ) -> Result<Self, Error> {
         let id = id.into();
@@ -142,7 +146,7 @@ impl Component {
             Ok(Self {
                 id,
                 kind: ComponentKind::GateSLR {
-                    source: source.into(),
+                    input: input.into(),
                     shift,
                 },
                 signal: None,
@@ -150,13 +154,13 @@ impl Component {
         }
     }
 
-    pub fn new_gate_not(id: impl Into<String>, source: impl Into<String>) -> Result<Self, Error> {
+    pub fn gate_not(id: impl Into<String>, input: impl Into<String>) -> Result<Self, Error> {
         let id = id.into();
         if id.bytes().all(|b| b.is_ascii_uppercase()) {
             Ok(Self {
                 id,
                 kind: ComponentKind::GateNot {
-                    source: source.into(),
+                    input: input.into(),
                 },
                 signal: None,
             })
@@ -169,25 +173,25 @@ impl Component {
 impl fmt::Display for Component {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self.kind {
-            ComponentKind::Wire { source } => {
-                write!(f, "{} -> {}", source, self.id)
+            ComponentKind::Wire { input } => {
+                write!(f, "{} -> {}", input, self.id)
             }
-            ComponentKind::GateAnd { source1, source2 } => {}
-            ComponentKind::GateOr { source1, source2 } => {}
-            ComponentKind::GateSLL { source, shift } => {}
-            ComponentKind::GateSLR { source, shift } => {}
-            ComponentKind::GateNot { source } => {}
+            ComponentKind::GateAnd { input1, input2 } => {}
+            ComponentKind::GateOr { input1, input2 } => {}
+            ComponentKind::GateSLL { input, shift } => {}
+            ComponentKind::GateSLR { input, shift } => {}
+            ComponentKind::GateNot { input } => {}
         }
     }
 }
 
-impl fmt::Display for WireSource {
+impl fmt::Display for ComponentInput {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            WireSource::Value(value) => {
+            ComponentInput::Value(value) => {
                 write!(f, "{}", value)
             }
-            WireSource::Id(id) => {
+            ComponentInput::Id(id) => {
                 write!(f, "{}", id)
             }
         }

@@ -88,6 +88,15 @@ impl Wire {
         Wire::from_gate(id, gate)
     }
 
+    pub fn from_gate_and_value(
+        id: impl Into<String>,
+        input1: impl Into<String>,
+        input2: u16,
+    ) -> Result<Self, Error> {
+        let gate = Gate::and_value(input1, input2)?;
+        Wire::from_gate(id, gate)
+    }
+
     pub fn from_gate_or(
         id: impl Into<String>,
         input1: impl Into<String>,
@@ -173,6 +182,9 @@ impl fmt::Display for Wire {
                 Gate::And { input1, input2 } => {
                     write!(f, "{} AND {} -> {}", input1, input2, self.id)
                 }
+                Gate::AndValue { input1, input2 } => {
+                    write!(f, "{} AND {} -> {}", input1, input2, self.id)
+                }
                 Gate::Or { input1, input2 } => {
                     write!(f, "{} OR {} -> {}", input1, input2, self.id)
                 }
@@ -204,7 +216,17 @@ impl From<&str> for Wire {
             }
             2 => WireInput::Gate(Gate::not(inputs[1]).unwrap()),
             3 => WireInput::Gate(match inputs[1] {
-                "AND" => Gate::and(inputs[0], inputs[2]).unwrap(),
+                "AND" => {
+                    if inputs[0].bytes().all(|b| b.is_ascii_digit()) {
+                        let value = inputs[0].parse::<u16>().unwrap();
+                        Gate::and_value(inputs[2], value).unwrap()
+                    } else if inputs[2].bytes().all(|b| b.is_ascii_digit()) {
+                        let value = inputs[2].parse::<u16>().unwrap();
+                        Gate::and_value(inputs[0], value).unwrap()
+                    } else {
+                        Gate::and(inputs[0], inputs[2]).unwrap()
+                    }
+                }
                 "OR" => Gate::or(inputs[0], inputs[2]).unwrap(),
                 "LSHIFT" => Gate::sll(inputs[0], inputs[2].parse::<u8>().unwrap()).unwrap(),
                 "RSHIFT" => Gate::slr(inputs[0], inputs[2].parse::<u8>().unwrap()).unwrap(),

@@ -3,6 +3,7 @@ use crate::{error::Error, wire::WireId};
 #[derive(Debug, PartialEq)]
 pub enum Gate {
     And { input1: WireId, input2: WireId },
+    AndValue { input1: WireId, input2: u16 },
     Or { input1: WireId, input2: WireId },
     SLL { input: WireId, shift: u8 },
     SLR { input: WireId, shift: u8 },
@@ -19,6 +20,15 @@ impl Gate {
             Err(Error::WrongFormatId(input2))
         } else {
             Ok(Self::And { input1, input2 })
+        }
+    }
+
+    pub fn and_value(input1: impl Into<String>, input2: u16) -> Result<Self, Error> {
+        let input1 = input1.into();
+        if input1.bytes().all(|b| b.is_ascii_lowercase()) {
+            Ok(Self::AndValue { input1, input2 })
+        } else {
+            Err(Error::WrongFormatId(input1))
         }
     }
 
