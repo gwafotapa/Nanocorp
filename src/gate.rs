@@ -12,7 +12,7 @@ pub enum Gate {
 }
 
 impl Gate {
-    pub fn and(input1: impl Into<String>, input2: impl Into<String>) -> Result<Self, Error> {
+    pub fn and<S: Into<String>, T: Into<String>>(input1: S, input2: T) -> Result<Self, Error> {
         let input1 = input1.into();
         let input2 = input2.into();
         if !input1.bytes().all(|b| b.is_ascii_lowercase()) {
@@ -24,7 +24,7 @@ impl Gate {
         }
     }
 
-    pub fn and_value(input: impl Into<String>, value: u16) -> Result<Self, Error> {
+    pub fn and_value<S: Into<String>>(input: S, value: u16) -> Result<Self, Error> {
         let input = input.into();
         if input.bytes().all(|b| b.is_ascii_lowercase()) {
             Ok(Self::AndValue { input, value })
@@ -33,7 +33,7 @@ impl Gate {
         }
     }
 
-    pub fn or(input1: impl Into<String>, input2: impl Into<String>) -> Result<Self, Error> {
+    pub fn or<S: Into<String>, T: Into<String>>(input1: S, input2: T) -> Result<Self, Error> {
         let input1 = input1.into();
         let input2 = input2.into();
         if !input1.bytes().all(|b| b.is_ascii_lowercase()) {
@@ -45,7 +45,7 @@ impl Gate {
         }
     }
 
-    pub fn or_value(input: impl Into<String>, value: u16) -> Result<Self, Error> {
+    pub fn or_value<S: Into<String>>(input: S, value: u16) -> Result<Self, Error> {
         let input = input.into();
         if input.bytes().all(|b| b.is_ascii_lowercase()) {
             Ok(Self::OrValue { input, value })
@@ -54,7 +54,7 @@ impl Gate {
         }
     }
 
-    pub fn sll(input: impl Into<String>, shift: u8) -> Result<Self, Error> {
+    pub fn sll<S: Into<String>>(input: S, shift: u8) -> Result<Self, Error> {
         let input = input.into();
         if !input.bytes().all(|b| b.is_ascii_lowercase()) {
             Err(Error::WrongFormatId(input))
@@ -65,7 +65,7 @@ impl Gate {
         }
     }
 
-    pub fn slr(input: impl Into<String>, shift: u8) -> Result<Self, Error> {
+    pub fn slr<S: Into<String>>(input: S, shift: u8) -> Result<Self, Error> {
         let input = input.into();
         if !input.bytes().all(|b| b.is_ascii_lowercase()) {
             Err(Error::WrongFormatId(input))
@@ -76,7 +76,7 @@ impl Gate {
         }
     }
 
-    pub fn not(input: impl Into<String>) -> Result<Self, Error> {
+    pub fn not<S: Into<String>>(input: S) -> Result<Self, Error> {
         let input = input.into();
         if input.bytes().all(|b| b.is_ascii_lowercase()) {
             Ok(Self::Not { input })

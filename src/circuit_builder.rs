@@ -28,9 +28,9 @@ impl CircuitBuilder {
         self
     }
 
-    pub fn add_wire_with_input(
+    pub fn add_wire_with_input<S: Into<String>>(
         &mut self,
-        id: impl Into<String>,
+        id: S,
         input: WireInput,
     ) -> &mut CircuitBuilder {
         let wire = Wire::new(id, input).unwrap();
@@ -38,9 +38,9 @@ impl CircuitBuilder {
         self
     }
 
-    pub fn add_wire_with_value(
+    pub fn add_wire_with_value<S: Into<String>>(
         &mut self,
-        id: impl Into<String>,
+        id: S,
         value: u16,
     ) -> &mut CircuitBuilder {
         let wire = Wire::with_value(id, value).unwrap();
@@ -48,37 +48,41 @@ impl CircuitBuilder {
         self
     }
 
-    pub fn add_wire_from_wire(
+    pub fn add_wire_from_wire<S: Into<String>, T: Into<String>>(
         &mut self,
-        id: impl Into<String>,
-        input_id: impl Into<String>,
+        id: S,
+        input_id: T,
     ) -> &mut CircuitBuilder {
         let wire = Wire::from_wire(id, input_id).unwrap();
         self.add(wire);
         self
     }
 
-    pub fn add_wire_from_gate(&mut self, id: impl Into<String>, gate: Gate) -> &mut CircuitBuilder {
+    pub fn add_wire_from_gate<S: Into<String>>(
+        &mut self,
+        id: S,
+        gate: Gate,
+    ) -> &mut CircuitBuilder {
         let wire = Wire::from_gate(id, gate).unwrap();
         self.add(wire);
         self
     }
 
-    pub fn add_gate_and(
+    pub fn add_gate_and<S: Into<String>, T: Into<String>, U: Into<String>>(
         &mut self,
-        output: impl Into<String>,
-        input1: impl Into<String>,
-        input2: impl Into<String>,
+        output: S,
+        input1: T,
+        input2: U,
     ) -> &mut CircuitBuilder {
         let wire = Wire::from_gate_and(output, input1, input2).unwrap();
         self.add(wire);
         self
     }
 
-    pub fn add_gate_and_value(
+    pub fn add_gate_and_value<S: Into<String>, T: Into<String>>(
         &mut self,
-        output: impl Into<String>,
-        input: impl Into<String>,
+        output: S,
+        input: T,
         value: u16,
     ) -> &mut CircuitBuilder {
         let wire = Wire::from_gate_and_value(output, input, value).unwrap();
@@ -86,21 +90,21 @@ impl CircuitBuilder {
         self
     }
 
-    pub fn add_gate_or(
+    pub fn add_gate_or<S: Into<String>, T: Into<String>, U: Into<String>>(
         &mut self,
-        output: impl Into<String>,
-        input1: impl Into<String>,
-        input2: impl Into<String>,
+        output: S,
+        input1: T,
+        input2: U,
     ) -> &mut CircuitBuilder {
         let wire = Wire::from_gate_or(output, input1, input2).unwrap();
         self.add(wire);
         self
     }
 
-    pub fn add_gate_or_value(
+    pub fn add_gate_or_value<S: Into<String>, T: Into<String>>(
         &mut self,
-        output: impl Into<String>,
-        input: impl Into<String>,
+        output: S,
+        input: T,
         value: u16,
     ) -> &mut CircuitBuilder {
         let wire = Wire::from_gate_or_value(output, input, value).unwrap();
@@ -108,10 +112,10 @@ impl CircuitBuilder {
         self
     }
 
-    pub fn add_gate_sll(
+    pub fn add_gate_sll<S: Into<String>, T: Into<String>>(
         &mut self,
-        output: impl Into<String>,
-        input: impl Into<String>,
+        output: S,
+        input: T,
         shift: u8,
     ) -> &mut CircuitBuilder {
         let wire = Wire::from_gate_sll(output, input, shift).unwrap();
@@ -119,10 +123,10 @@ impl CircuitBuilder {
         self
     }
 
-    pub fn add_gate_slr(
+    pub fn add_gate_slr<S: Into<String>, T: Into<String>>(
         &mut self,
-        output: impl Into<String>,
-        input: impl Into<String>,
+        output: S,
+        input: T,
         shift: u8,
     ) -> &mut CircuitBuilder {
         let wire = Wire::from_gate_slr(output, input, shift).unwrap();
@@ -130,10 +134,10 @@ impl CircuitBuilder {
         self
     }
 
-    pub fn add_gate_not(
+    pub fn add_gate_not<S: Into<String>, T: Into<String>>(
         &mut self,
-        output: impl Into<String>,
-        input: impl Into<String>,
+        output: S,
+        input: T,
     ) -> &mut CircuitBuilder {
         let gate = Wire::from_gate_not(output, input).unwrap();
         self.add(gate);

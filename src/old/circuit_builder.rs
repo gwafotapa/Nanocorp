@@ -27,7 +27,7 @@ impl CircuitBuilder {
         self
     }
 
-    pub fn add_wire(&mut self, id: impl Into<String>, source: WireSource) -> &mut CircuitBuilder {
+    pub fn add_wire(&mut self, id: S, source: WireSource) -> &mut CircuitBuilder {
         let wire = Component::new_wire(id, source).unwrap();
         self.add_component(wire);
         self
@@ -35,7 +35,7 @@ impl CircuitBuilder {
 
     pub fn add_wire_with_value(
         &mut self,
-        id: impl Into<String>,
+        id: S,
         value: u16,
     ) -> &mut CircuitBuilder {
         let wire = Component::new_wire_with_value(id, value).unwrap();
@@ -45,8 +45,8 @@ impl CircuitBuilder {
 
     pub fn add_wire_from_component(
         &mut self,
-        id: impl Into<String>,
-        component_id: impl Into<String>,
+        id: S,
+        component_id: S,
     ) -> &mut CircuitBuilder {
         let wire = Component::new_wire_from_component(id, component_id).unwrap();
         self.add_component(wire);
@@ -55,9 +55,9 @@ impl CircuitBuilder {
 
     pub fn add_gate_and(
         &mut self,
-        id: impl Into<String>,
-        source1: impl Into<String>,
-        source2: impl Into<String>,
+        id: S,
+        source1: S,
+        source2: S,
     ) -> &mut CircuitBuilder {
         let gate = Component::new_gate_and(id, source1, source2).unwrap();
         self.add_component(gate);
@@ -66,9 +66,9 @@ impl CircuitBuilder {
 
     pub fn add_wired_gate_and(
         &mut self,
-        id: impl Into<String>,
-        source1: impl Into<String>,
-        source2: impl Into<String>,
+        id: S,
+        source1: S,
+        source2: S,
     ) -> &mut CircuitBuilder {
         let id = id.into();
         let uid = &id.to_ascii_uppercase();
@@ -79,9 +79,9 @@ impl CircuitBuilder {
 
     pub fn add_gate_or(
         &mut self,
-        id: impl Into<String>,
-        source1: impl Into<String>,
-        source2: impl Into<String>,
+        id: S,
+        source1: S,
+        source2: S,
     ) -> &mut CircuitBuilder {
         let gate = Component::new_gate_or(id, source1, source2).unwrap();
         self.add_component(gate);
@@ -90,9 +90,9 @@ impl CircuitBuilder {
 
     pub fn add_wired_gate_or(
         &mut self,
-        id: impl Into<String>,
-        source1: impl Into<String>,
-        source2: impl Into<String>,
+        id: S,
+        source1: S,
+        source2: S,
     ) -> &mut CircuitBuilder {
         let id = id.into();
         let uid = &id.to_ascii_uppercase();
@@ -103,8 +103,8 @@ impl CircuitBuilder {
 
     pub fn add_gate_sll(
         &mut self,
-        id: impl Into<String>,
-        source: impl Into<String>,
+        id: S,
+        source: S,
         shift: u8,
     ) -> &mut CircuitBuilder {
         let gate = Component::new_gate_sll(id, source, shift).unwrap();
@@ -114,8 +114,8 @@ impl CircuitBuilder {
 
     pub fn add_wired_gate_sll(
         &mut self,
-        id: impl Into<String>,
-        source: impl Into<String>,
+        id: S,
+        source: S,
         shift: u8,
     ) -> &mut CircuitBuilder {
         let id = id.into();
@@ -127,8 +127,8 @@ impl CircuitBuilder {
 
     pub fn add_gate_slr(
         &mut self,
-        id: impl Into<String>,
-        source: impl Into<String>,
+        id: S,
+        source: S,
         shift: u8,
     ) -> &mut CircuitBuilder {
         let gate = Component::new_gate_slr(id, source, shift).unwrap();
@@ -138,8 +138,8 @@ impl CircuitBuilder {
 
     pub fn add_wired_gate_slr(
         &mut self,
-        id: impl Into<String>,
-        source: impl Into<String>,
+        id: S,
+        source: S,
         shift: u8,
     ) -> &mut CircuitBuilder {
         let id = id.into();
@@ -151,8 +151,8 @@ impl CircuitBuilder {
 
     pub fn add_gate_not(
         &mut self,
-        id: impl Into<String>,
-        source: impl Into<String>,
+        id: S,
+        source: S,
     ) -> &mut CircuitBuilder {
         let gate = Component::new_gate_not(id, source).unwrap();
         self.add_component(gate);
@@ -161,8 +161,8 @@ impl CircuitBuilder {
 
     pub fn add_wired_gate_not(
         &mut self,
-        id: impl Into<String>,
-        source: impl Into<String>,
+        id: S,
+        source: S,
     ) -> &mut CircuitBuilder {
         let id = id.into();
         let uid = &id.to_ascii_uppercase();

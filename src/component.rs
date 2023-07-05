@@ -42,22 +42,22 @@ pub enum ComponentInput {
 }
 
 impl Component {
-    // pub fn new(id: impl Into<String>, kind: ComponentKind) -> Result<Self, Error> {
+    // pub fn new(id: S, kind: ComponentKind) -> Result<Self, Error> {
     // 	let id = id.into();
     // }
 
-    pub fn wire_with_value(id: impl Into<String>, value: u16) -> Result<Self, Error> {
+    pub fn wire_with_value(id: S, value: u16) -> Result<Self, Error> {
         Self::wire(id, ComponentInput::Value(value))
     }
 
     pub fn wire_from_component(
-        id: impl Into<String>,
-        input_id: impl Into<String>,
+        id: S,
+        input_id: S,
     ) -> Result<Self, Error> {
         Self::wire(id, ComponentInput::Id(input_id.into()))
     }
 
-    pub fn wire(id: impl Into<String>, input: ComponentInput) -> Result<Self, Error> {
+    pub fn wire(id: S, input: ComponentInput) -> Result<Self, Error> {
         let id = id.into();
         if id.bytes().all(|b| b.is_ascii_lowercase()) {
             Ok(Self {
@@ -71,9 +71,9 @@ impl Component {
     }
 
     pub fn gate_and(
-        id: impl Into<String>,
-        input1: impl Into<String>,
-        input2: impl Into<String>,
+        id: S,
+        input1: S,
+        input2: S,
     ) -> Result<Self, Error> {
         let id = id.into();
         if id.bytes().all(|b| b.is_ascii_uppercase()) {
@@ -91,9 +91,9 @@ impl Component {
     }
 
     pub fn gate_or(
-        id: impl Into<String>,
-        input1: impl Into<String>,
-        input2: impl Into<String>,
+        id: S,
+        input1: S,
+        input2: S,
     ) -> Result<Self, Error> {
         let id = id.into();
         if id.bytes().all(|b| b.is_ascii_uppercase()) {
@@ -111,8 +111,8 @@ impl Component {
     }
 
     pub fn gate_sll(
-        id: impl Into<String>,
-        input: impl Into<String>,
+        id: S,
+        input: S,
         shift: u8,
     ) -> Result<Self, Error> {
         let id = id.into();
@@ -133,8 +133,8 @@ impl Component {
     }
 
     pub fn gate_slr(
-        id: impl Into<String>,
-        input: impl Into<String>,
+        id: S,
+        input: S,
         shift: u8,
     ) -> Result<Self, Error> {
         let id = id.into();
@@ -154,7 +154,7 @@ impl Component {
         }
     }
 
-    pub fn gate_not(id: impl Into<String>, input: impl Into<String>) -> Result<Self, Error> {
+    pub fn gate_not(id: S, input: S) -> Result<Self, Error> {
         let id = id.into();
         if id.bytes().all(|b| b.is_ascii_uppercase()) {
             Ok(Self {

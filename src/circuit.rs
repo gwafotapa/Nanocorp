@@ -1,4 +1,4 @@
-use std::{collections::HashMap, fmt};
+use std::{collections::HashMap, fmt, fs, path::Path};
 
 use crate::{
     error::Error,
@@ -31,9 +31,9 @@ impl Circuit {
         }
     }
 
-    pub fn add_wire_with_input(
+    pub fn add_wire_with_input<S: Into<String>>(
         &mut self,
-        id: impl Into<String>,
+        id: S,
         input: WireInput,
     ) -> Result<(), Error> {
         let wire = Wire::new(id, input)?;
@@ -41,33 +41,33 @@ impl Circuit {
         Ok(())
     }
 
-    pub fn add_wire_with_value(&mut self, id: impl Into<String>, value: u16) -> Result<(), Error> {
+    pub fn add_wire_with_value<S: Into<String>>(&mut self, id: S, value: u16) -> Result<(), Error> {
         let wire = Wire::with_value(id, value)?;
         self.add(wire)?;
         Ok(())
     }
 
-    pub fn add_wire_from_wire(
+    pub fn add_wire_from_wire<S: Into<String>, T: Into<String>>(
         &mut self,
-        id: impl Into<String>,
-        input_id: impl Into<String>,
+        id: S,
+        input_id: T,
     ) -> Result<(), Error> {
         let wire = Wire::from_wire(id, input_id)?;
         self.add(wire)?;
         Ok(())
     }
 
-    pub fn add_wire_from_gate(&mut self, id: impl Into<String>, gate: Gate) -> Result<(), Error> {
+    pub fn add_wire_from_gate<S: Into<String>>(&mut self, id: S, gate: Gate) -> Result<(), Error> {
         let wire = Wire::from_gate(id, gate)?;
         self.add(wire)?;
         Ok(())
     }
 
-    pub fn add_gate_and(
+    pub fn add_gate_and<S: Into<String>, T: Into<String>, U: Into<String>>(
         &mut self,
-        output: impl Into<String>,
-        input1: impl Into<String>,
-        input2: impl Into<String>,
+        output: S,
+        input1: T,
+        input2: U,
     ) -> Result<(), Error> {
         let gate = Gate::and(input1, input2)?;
         let wire = Wire::from_gate(output, gate)?;
@@ -75,10 +75,10 @@ impl Circuit {
         Ok(())
     }
 
-    pub fn add_gate_and_value(
+    pub fn add_gate_and_value<S: Into<String>, T: Into<String>>(
         &mut self,
-        output: impl Into<String>,
-        input: impl Into<String>,
+        output: S,
+        input: T,
         value: u16,
     ) -> Result<(), Error> {
         let gate = Gate::and_value(input, value)?;
@@ -87,11 +87,11 @@ impl Circuit {
         Ok(())
     }
 
-    pub fn add_gate_or(
+    pub fn add_gate_or<S: Into<String>, T: Into<String>, U: Into<String>>(
         &mut self,
-        output: impl Into<String>,
-        input1: impl Into<String>,
-        input2: impl Into<String>,
+        output: S,
+        input1: T,
+        input2: U,
     ) -> Result<(), Error> {
         let gate = Gate::or(input1, input2)?;
         let wire = Wire::from_gate(output, gate)?;
@@ -99,10 +99,10 @@ impl Circuit {
         Ok(())
     }
 
-    pub fn add_gate_or_value(
+    pub fn add_gate_or_value<S: Into<String>, T: Into<String>>(
         &mut self,
-        output: impl Into<String>,
-        input: impl Into<String>,
+        output: S,
+        input: T,
         value: u16,
     ) -> Result<(), Error> {
         let gate = Gate::or_value(input, value)?;
@@ -111,10 +111,10 @@ impl Circuit {
         Ok(())
     }
 
-    pub fn add_gate_sll(
+    pub fn add_gate_sll<S: Into<String>, T: Into<String>>(
         &mut self,
-        output: impl Into<String>,
-        input: impl Into<String>,
+        output: S,
+        input: T,
         shift: u8,
     ) -> Result<(), Error> {
         let gate = Gate::sll(input, shift)?;
@@ -123,10 +123,10 @@ impl Circuit {
         Ok(())
     }
 
-    pub fn add_gate_slr(
+    pub fn add_gate_slr<S: Into<String>, T: Into<String>>(
         &mut self,
-        output: impl Into<String>,
-        input: impl Into<String>,
+        output: S,
+        input: T,
         shift: u8,
     ) -> Result<(), Error> {
         let gate = Gate::slr(input, shift)?;
@@ -135,10 +135,10 @@ impl Circuit {
         Ok(())
     }
 
-    pub fn add_gate_not(
+    pub fn add_gate_not<S: Into<String>, T: Into<String>>(
         &mut self,
-        output: impl Into<String>,
-        input: impl Into<String>,
+        output: S,
+        input: T,
     ) -> Result<(), Error> {
         let gate = Gate::not(input)?;
         let wire = Wire::from_gate(output, gate)?;
@@ -264,6 +264,11 @@ impl Circuit {
             false
         }
     }
+
+    // pub fn read_from_file(path: impl AsRef<Path>) -> Result<Self, Error> {
+    //     let s = fs::read_to_string(path).unwrap();
+    //     Ok(Self::from(&s))
+    // }
 }
 
 impl fmt::Display for Circuit {
@@ -275,10 +280,10 @@ impl fmt::Display for Circuit {
     }
 }
 
-impl From<&str> for Circuit {
-    fn from(s: &str) -> Self {
+impl<S: AsRef<str>> From<S> for Circuit {
+    fn from(s: S) -> Self {
         let mut circuit = Circuit::new();
-        for wire in s.trim_end().split('\n') {
+        for wire in s.as_ref().trim_end().split('\n') {
             circuit.add(wire.into()).unwrap();
         }
         circuit

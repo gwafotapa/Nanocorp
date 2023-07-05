@@ -29,13 +29,13 @@ impl Circuit {
         self.components.remove(id);
     }
 
-    pub fn add_wire(&mut self, id: impl Into<String>, source: WireSource) -> Result<(), Error> {
+    pub fn add_wire(&mut self, id: S, source: WireSource) -> Result<(), Error> {
         let wire = Component::new_wire(id, source)?;
         self.add_component(wire)?;
         Ok(())
     }
 
-    pub fn add_wire_with_value(&mut self, id: impl Into<String>, value: u16) -> Result<(), Error> {
+    pub fn add_wire_with_value(&mut self, id: S, value: u16) -> Result<(), Error> {
         let wire = Component::new_wire_with_value(id, value)?;
         self.add_component(wire)?;
         Ok(())
@@ -43,8 +43,8 @@ impl Circuit {
 
     pub fn add_wire_from_component(
         &mut self,
-        id: impl Into<String>,
-        component_id: impl Into<String>,
+        id: S,
+        component_id: S,
     ) -> Result<(), Error> {
         let wire = Component::new_wire_from_component(id, component_id)?;
         self.add_component(wire)?;
@@ -53,9 +53,9 @@ impl Circuit {
 
     pub fn add_gate_and(
         &mut self,
-        id: impl Into<String>,
-        source1: impl Into<String>,
-        source2: impl Into<String>,
+        id: S,
+        source1: S,
+        source2: S,
     ) -> Result<(), Error> {
         let gate = Component::new_gate_and(id, source1, source2)?;
         self.add_component(gate)?;
@@ -64,9 +64,9 @@ impl Circuit {
 
     pub fn add_wired_gate_and(
         &mut self,
-        id: impl Into<String>,
-        source1: impl Into<String>,
-        source2: impl Into<String>,
+        id: S,
+        source1: S,
+        source2: S,
     ) -> Result<(), Error> {
         let id = id.into();
         let uid = &id.to_ascii_uppercase();
@@ -80,9 +80,9 @@ impl Circuit {
 
     pub fn add_gate_or(
         &mut self,
-        id: impl Into<String>,
-        source1: impl Into<String>,
-        source2: impl Into<String>,
+        id: S,
+        source1: S,
+        source2: S,
     ) -> Result<(), Error> {
         let gate = Component::new_gate_or(id, source1, source2)?;
         self.add_component(gate)?;
@@ -91,9 +91,9 @@ impl Circuit {
 
     pub fn add_wired_gate_or(
         &mut self,
-        id: impl Into<String>,
-        source1: impl Into<String>,
-        source2: impl Into<String>,
+        id: S,
+        source1: S,
+        source2: S,
     ) -> Result<(), Error> {
         let id = id.into();
         let uid = &id.to_ascii_uppercase();
@@ -107,8 +107,8 @@ impl Circuit {
 
     pub fn add_gate_sll(
         &mut self,
-        id: impl Into<String>,
-        source: impl Into<String>,
+        id: S,
+        source: S,
         shift: u8,
     ) -> Result<(), Error> {
         let gate = Component::new_gate_sll(id, source, shift)?;
@@ -118,8 +118,8 @@ impl Circuit {
 
     pub fn add_wired_gate_sll(
         &mut self,
-        id: impl Into<String>,
-        source: impl Into<String>,
+        id: S,
+        source: S,
         shift: u8,
     ) -> Result<(), Error> {
         let id = id.into();
@@ -134,8 +134,8 @@ impl Circuit {
 
     pub fn add_gate_slr(
         &mut self,
-        id: impl Into<String>,
-        source: impl Into<String>,
+        id: S,
+        source: S,
         shift: u8,
     ) -> Result<(), Error> {
         let gate = Component::new_gate_slr(id, source, shift)?;
@@ -145,8 +145,8 @@ impl Circuit {
 
     pub fn add_wired_gate_slr(
         &mut self,
-        id: impl Into<String>,
-        source: impl Into<String>,
+        id: S,
+        source: S,
         shift: u8,
     ) -> Result<(), Error> {
         let id = id.into();
@@ -161,8 +161,8 @@ impl Circuit {
 
     pub fn add_gate_not(
         &mut self,
-        id: impl Into<String>,
-        source: impl Into<String>,
+        id: S,
+        source: S,
     ) -> Result<(), Error> {
         let gate = Component::new_gate_not(id, source)?;
         self.add_component(gate)?;
@@ -171,8 +171,8 @@ impl Circuit {
 
     pub fn add_wired_gate_not(
         &mut self,
-        id: impl Into<String>,
-        source: impl Into<String>,
+        id: S,
+        source: S,
     ) -> Result<(), Error> {
         let id = id.into();
         let uid = &id.to_ascii_uppercase();
