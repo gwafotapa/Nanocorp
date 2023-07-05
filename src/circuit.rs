@@ -99,6 +99,18 @@ impl Circuit {
         Ok(())
     }
 
+    pub fn add_gate_or_value(
+        &mut self,
+        output: impl Into<String>,
+        input1: impl Into<String>,
+        input2: u16,
+    ) -> Result<(), Error> {
+        let gate = Gate::or_value(input1, input2)?;
+        let wire = Wire::from_gate(output, gate)?;
+        self.add(wire)?;
+        Ok(())
+    }
+
     pub fn add_gate_sll(
         &mut self,
         output: impl Into<String>,
@@ -193,6 +205,14 @@ impl Circuit {
                                 if self.get_signal(input2).is_none() {
                                     ids.push(input2.to_string());
                                 }
+                            }
+                        }
+                        Gate::OrValue { input1, input2 } => {
+                            if let Some(signal1) = self.get_signal(input1) {
+                                self.wires.get_mut(id).unwrap().signal = Some(signal1 | input2);
+                                ids.pop();
+                            } else {
+                                ids.push(input1.to_string());
                             }
                         }
                         Gate::SLL { input, shift } => {

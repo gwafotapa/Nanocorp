@@ -5,6 +5,7 @@ pub enum Gate {
     And { input1: WireId, input2: WireId },
     AndValue { input1: WireId, input2: u16 },
     Or { input1: WireId, input2: WireId },
+    OrValue { input1: WireId, input2: u16 },
     SLL { input: WireId, shift: u8 },
     SLR { input: WireId, shift: u8 },
     Not { input: WireId },
@@ -41,6 +42,15 @@ impl Gate {
             Err(Error::WrongFormatId(input2))
         } else {
             Ok(Self::Or { input1, input2 })
+        }
+    }
+
+    pub fn or_value(input1: impl Into<String>, input2: u16) -> Result<Self, Error> {
+        let input1 = input1.into();
+        if input1.bytes().all(|b| b.is_ascii_lowercase()) {
+            Ok(Self::OrValue { input1, input2 })
+        } else {
+            Err(Error::WrongFormatId(input1))
         }
     }
 

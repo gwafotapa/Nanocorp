@@ -75,6 +75,17 @@ impl CircuitBuilder {
         self
     }
 
+    pub fn add_gate_and_value(
+        &mut self,
+        output: impl Into<String>,
+        input1: impl Into<String>,
+        input2: u16,
+    ) -> &mut CircuitBuilder {
+        let wire = Wire::from_gate_and_value(output, input1, input2).unwrap();
+        self.add(wire);
+        self
+    }
+
     pub fn add_gate_or(
         &mut self,
         output: impl Into<String>,
@@ -82,6 +93,17 @@ impl CircuitBuilder {
         input2: impl Into<String>,
     ) -> &mut CircuitBuilder {
         let wire = Wire::from_gate_or(output, input1, input2).unwrap();
+        self.add(wire);
+        self
+    }
+
+    pub fn add_gate_or_value(
+        &mut self,
+        output: impl Into<String>,
+        input1: impl Into<String>,
+        input2: u16,
+    ) -> &mut CircuitBuilder {
+        let wire = Wire::from_gate_or_value(output, input1, input2).unwrap();
         self.add(wire);
         self
     }

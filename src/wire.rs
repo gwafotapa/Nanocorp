@@ -106,6 +106,16 @@ impl Wire {
         Wire::from_gate(id, gate)
     }
 
+    pub fn from_gate_or_value(
+        // TODO: test
+        id: impl Into<String>,
+        input1: impl Into<String>,
+        input2: u16,
+    ) -> Result<Self, Error> {
+        let gate = Gate::or_value(input1, input2)?;
+        Wire::from_gate(id, gate)
+    }
+
     pub fn from_gate_sll(
         id: impl Into<String>,
         input: impl Into<String>,
@@ -188,6 +198,9 @@ impl fmt::Display for Wire {
                 Gate::Or { input1, input2 } => {
                     write!(f, "{} OR {} -> {}", input1, input2, self.id)
                 }
+                Gate::OrValue { input1, input2 } => {
+                    write!(f, "{} OR {} -> {}", input1, input2, self.id)
+                }
                 Gate::SLL { input, shift } => {
                     write!(f, "{} LSHIFT {} -> {}", input, shift, self.id)
                 }
@@ -227,7 +240,17 @@ impl From<&str> for Wire {
                         Gate::and(inputs[0], inputs[2]).unwrap()
                     }
                 }
-                "OR" => Gate::or(inputs[0], inputs[2]).unwrap(),
+                "OR" => {
+                    if inputs[0].bytes().all(|b| b.is_ascii_digit()) {
+                        let value = inputs[0].parse::<u16>().unwrap();
+                        Gate::or_value(inputs[2], value).unwrap()
+                    } else if inputs[2].bytes().all(|b| b.is_ascii_digit()) {
+                        let value = inputs[2].parse::<u16>().unwrap();
+                        Gate::or_value(inputs[0], value).unwrap()
+                    } else {
+                        Gate::or(inputs[0], inputs[2]).unwrap()
+                    }
+                }
                 "LSHIFT" => Gate::sll(inputs[0], inputs[2].parse::<u8>().unwrap()).unwrap(),
                 "RSHIFT" => Gate::slr(inputs[0], inputs[2].parse::<u8>().unwrap()).unwrap(),
                 _ => panic!("Cannot convert string \"{}\" to wire", s),
