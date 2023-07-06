@@ -1,4 +1,4 @@
-use std::{collections::HashMap, mem};
+use std::{collections, mem};
 
 use crate::{
     circuit::Circuit,
@@ -7,13 +7,13 @@ use crate::{
 };
 
 pub struct CircuitBuilder {
-    wires: HashMap<WireId, Wire>,
+    wires: collections::HashMap<WireId, Wire>,
 }
 
 impl CircuitBuilder {
     pub fn new() -> Self {
         Self {
-            wires: HashMap::new(),
+            wires: collections::HashMap::new(),
         }
     }
 

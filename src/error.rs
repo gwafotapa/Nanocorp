@@ -1,75 +1,29 @@
-use std::{io, num::ParseIntError};
+use std::{io, num};
 
-use thiserror::Error;
+use thiserror;
 
 use crate::wire::WireId;
 
-#[derive(Error, Debug)]
-#[error("Wire id '{0}' is not ascii lowercase")]
-pub struct WireIdError(pub WireId);
-
-#[derive(Error, Debug)]
-pub enum GateError {
-    #[error(transparent)]
-    InvalidId(#[from] WireIdError),
+#[derive(thiserror::Error, Debug)]
+pub enum Error {
+    #[error("Wire id '{0}' is not ascii lowercase")]
+    InvalidWireId(WireId),
 
     #[error("Shift amount '{0}' exceeds 15")]
     TooLargeShift(u8),
-}
 
-#[derive(Error, Debug)]
-pub enum WireError {
-    #[error(transparent)]
-    InvalidId(#[from] WireIdError),
-
-    #[error(transparent)]
-    InvalidGate(#[from] GateError),
-}
-
-#[derive(Error, Debug)]
-pub enum CircuitError {
-    #[error("Circuit already has a wire whose id is '{0}'")]
-    IdAlreadyExists(WireId),
-
-    #[error(transparent)]
-    InvalidGate(#[from] GateError),
-
-    #[error(transparent)]
-    InvalidWire(#[from] WireError),
-}
-
-#[derive(Error, Debug)]
-pub enum ParseGateError {
     #[error("Cannot parse string '{0}' as a gate")]
-    UnknownGate(String),
+    ParseGate(String),
 
-    #[error(transparent)]
-    InvalidInput(#[from] GateError),
+    #[error("Cannot parse gate shift from string '{0}'")]
+    ParseShift(#[from] num::ParseIntError),
 
-    #[error(transparent)]
-    ParseShift(#[from] ParseIntError),
-}
-
-#[derive(Error, Debug)]
-pub enum ParseWireError {
     #[error("String {0} has no arrow ' -> '")]
-    MissingArrow(String),
+    ParseArrow(String),
 
-    #[error(transparent)]
-    ParseGate(#[from] ParseGateError),
+    #[error("Circuit already has a wire whose id is '{0}'")]
+    WireIdAlreadyExists(WireId),
 
-    #[error(transparent)]
-    InvalidWire(#[from] WireError),
-}
-
-#[derive(Error, Debug)]
-pub enum ParseCircuitError {
     #[error(transparent)]
     InvalidPath(#[from] io::Error),
-
-    #[error(transparent)]
-    ParseWire(#[from] ParseWireError),
-
-    #[error(transparent)]
-    InvalidCircuit(#[from] CircuitError),
 }

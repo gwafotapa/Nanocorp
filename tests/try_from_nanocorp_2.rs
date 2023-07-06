@@ -1,7 +1,7 @@
-use circuit::{circuit::Circuit, error::ParseCircuitError};
+use circuit::{circuit::Circuit, error::Error};
 
 #[test]
-fn try_from_nanocorp_example_2() -> Result<(), ParseCircuitError> {
+fn try_from_nanocorp_example_2() -> Result<(), Error> {
     let s = "lf AND lq -> ls\n\
 		 iu RSHIFT 1 -> jn\n\
 		 bo OR bu -> bv\n\

@@ -1,9 +1,6 @@
 use std::fmt; // use crate::signal::Signal;
 
-use crate::{
-    error::{ParseWireError, WireError, WireIdError},
-    gate::Gate,
-};
+use crate::{error::Error, gate::Gate};
 
 pub type WireId = String;
 
@@ -31,7 +28,7 @@ impl Wire {
     //     })
     // }
 
-    pub fn new<S: Into<String>>(id: S, input: WireInput) -> Result<Self, WireError> {
+    pub fn new<S: Into<String>>(id: S, input: WireInput) -> Result<Self, Error> {
         match input {
             // None => Self::no_input(id),
             WireInput::Value(value) => Self::with_value(id, value),
@@ -40,7 +37,7 @@ impl Wire {
         }
     }
 
-    pub fn with_value<S: Into<String>>(id: S, value: u16) -> Result<Self, WireError> {
+    pub fn with_value<S: Into<String>>(id: S, value: u16) -> Result<Self, Error> {
         let id = id.into();
         if id.bytes().all(|b| b.is_ascii_lowercase()) {
             Ok(Self {
@@ -49,14 +46,11 @@ impl Wire {
                 signal: None,
             })
         } else {
-            Err(WireIdError(id).into())
+            Err(Error::InvalidWireId(id))
         }
     }
 
-    pub fn from_wire<S: Into<String>, T: Into<String>>(
-        id: S,
-        input_id: T,
-    ) -> Result<Self, WireError> {
+    pub fn from_wire<S: Into<String>, T: Into<String>>(id: S, input_id: T) -> Result<Self, Error> {
         let id = id.into();
         let input_id = input_id.into();
         if id.bytes().all(|b| b.is_ascii_lowercase())
@@ -68,11 +62,11 @@ impl Wire {
                 signal: None,
             })
         } else {
-            Err(WireIdError(id).into())
+            Err(Error::InvalidWireId(id))
         }
     }
 
-    pub fn from_gate<S: Into<String>>(id: S, gate: Gate) -> Result<Self, WireError> {
+    pub fn from_gate<S: Into<String>>(id: S, gate: Gate) -> Result<Self, Error> {
         let id = id.into();
         if id.bytes().all(|b| b.is_ascii_lowercase()) {
             Ok(Self {
@@ -81,7 +75,7 @@ impl Wire {
                 signal: None,
             })
         } else {
-            Err(WireIdError(id).into())
+            Err(Error::InvalidWireId(id))
         }
     }
 
@@ -89,7 +83,7 @@ impl Wire {
         id: S,
         input1: T,
         input2: U,
-    ) -> Result<Self, WireError> {
+    ) -> Result<Self, Error> {
         let gate = Gate::and(input1, input2)?;
         Wire::from_gate(id, gate)
     }
@@ -98,7 +92,7 @@ impl Wire {
         id: S,
         input: T,
         value: u16,
-    ) -> Result<Self, WireError> {
+    ) -> Result<Self, Error> {
         let gate = Gate::and_value(input, value)?;
         Wire::from_gate(id, gate)
     }
@@ -107,7 +101,7 @@ impl Wire {
         id: S,
         input1: T,
         input2: U,
-    ) -> Result<Self, WireError> {
+    ) -> Result<Self, Error> {
         let gate = Gate::or(input1, input2)?;
         Wire::from_gate(id, gate)
     }
@@ -117,7 +111,7 @@ impl Wire {
         id: S,
         input: T,
         value: u16,
-    ) -> Result<Self, WireError> {
+    ) -> Result<Self, Error> {
         let gate = Gate::or_value(input, value)?;
         Wire::from_gate(id, gate)
     }
@@ -126,7 +120,7 @@ impl Wire {
         id: S,
         input: T,
         shift: u8,
-    ) -> Result<Self, WireError> {
+    ) -> Result<Self, Error> {
         let gate = Gate::sll(input, shift)?;
         Wire::from_gate(id, gate)
     }
@@ -135,15 +129,12 @@ impl Wire {
         id: S,
         input: T,
         shift: u8,
-    ) -> Result<Self, WireError> {
+    ) -> Result<Self, Error> {
         let gate = Gate::slr(input, shift)?;
         Wire::from_gate(id, gate)
     }
 
-    pub fn from_gate_not<S: Into<String>, T: Into<String>>(
-        id: S,
-        input: T,
-    ) -> Result<Self, WireError> {
+    pub fn from_gate_not<S: Into<String>, T: Into<String>>(id: S, input: T) -> Result<Self, Error> {
         let gate = Gate::not(input)?;
         Wire::from_gate(id, gate)
     }
@@ -166,21 +157,6 @@ impl Wire {
     //     self.signal = Some(value);
     // }
 }
-
-// impl<'a> Signal for Wire<'a> {
-//     fn signal(&self) -> Option<u16> {
-//         self.input
-//             .map(|s| match s {
-//                 WireInput::Value(value) => Some(value),
-//                 WireInput::Wire(wire) => wire.signal(),
-//             })
-//             .flatten()
-//         // match self.input {
-//         //     WireInput::Value(value) => Some(value),
-//         //     WireInput::Wire(wire) => wire.signal(),
-//         // }
-//     }
-// }
 
 // impl PartialEq for Wire {
 //     fn eq(&self, other: &Self) -> bool {
@@ -205,12 +181,12 @@ impl fmt::Display for Wire {
 }
 
 impl TryFrom<&str> for Wire {
-    type Error = ParseWireError;
+    type Error = Error;
 
-    fn try_from(s: &str) -> Result<Self, ParseWireError> {
+    fn try_from(s: &str) -> Result<Self, Error> {
         let (input, output) = s
             .split_once(" -> ")
-            .ok_or(ParseWireError::MissingArrow(s.to_string()))?;
+            .ok_or(Error::ParseArrow(s.to_string()))?;
         let inputs: Vec<&str> = input.split(' ').collect();
         let wire_input = match inputs.len() {
             1 => {
@@ -222,7 +198,7 @@ impl TryFrom<&str> for Wire {
             }
             _ => WireInput::Gate(Gate::try_from(input)?),
         };
-        Ok(Wire::new(output, wire_input)?)
+        Wire::new(output, wire_input)
     }
 }
 
@@ -231,7 +207,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn ids() {
+    fn wire_id() {
         assert!(Wire::with_value("A", 3).is_err());
         assert!(Wire::from_wire("1", "2").is_err());
         assert!(Wire::with_value("nano corp", 9).is_err());
@@ -242,7 +218,39 @@ mod tests {
     }
 
     #[test]
-    fn from_strings() {
+    fn shift_amount() {
+        assert!(Wire::from_gate_sll("sll", "w", 0).is_ok());
+        assert!(Wire::from_gate_slr("slr", "w", 15).is_ok());
+        assert!(Wire::from_gate_slr("slr", "w", 16).is_err());
+    }
+
+    #[test]
+    fn parse_gate() {
+        assert!(Wire::try_from(" -> w").is_err());
+        assert!(Wire::try_from("NOT -> w").is_err());
+        assert!(Wire::try_from("a AND NOT b -> w").is_err());
+        assert!(Wire::try_from("a OR -> w").is_err());
+        assert!(Wire::try_from("a NOT b -> w").is_err());
+    }
+
+    #[test]
+    fn parse_shift() {
+        assert!(Wire::try_from("a LSHIFT 0 -> w").is_ok());
+        assert!(Wire::try_from("a RSHIFT 15 -> w").is_ok());
+        assert!(Wire::try_from("a LSHIFT 16 -> w").is_err());
+        assert!(Wire::try_from("a RSHIFT a -> w").is_err());
+    }
+
+    #[test]
+    fn parse_arrow() {
+        assert!(Wire::try_from("x-> w").is_err());
+        assert!(Wire::try_from("x ->w").is_err());
+        assert!(Wire::try_from("1 ->  -> b").is_err());
+        assert!(Wire::try_from("a -> b -> c").is_err());
+    }
+
+    #[test]
+    fn try_from() {
         let w1 = Wire::try_from("456 -> y").unwrap();
         let w2 = Wire::with_value("y", 456).unwrap();
         assert_eq!(w1, w2);
