@@ -1,7 +1,7 @@
 use std::{collections::HashMap, fmt, fs, path::Path};
 
 use crate::{
-    error::Error,
+    error::{CircuitError, ParseCircuitError},
     gate::Gate,
     wire::{Wire, WireId, WireInput},
 };
@@ -22,9 +22,9 @@ impl Circuit {
         self.wires.remove(id);
     }
 
-    pub fn add(&mut self, wire: Wire) -> Result<(), Error> {
+    pub fn add(&mut self, wire: Wire) -> Result<(), CircuitError> {
         if self.wires.contains_key(&wire.id) {
-            Err(Error::IdAlreadyExists(wire.id))
+            Err(CircuitError::ConflictingWireId(wire.id))
         } else {
             self.wires.insert(wire.id.clone(), wire);
             Ok(())
@@ -35,13 +35,17 @@ impl Circuit {
         &mut self,
         id: S,
         input: WireInput,
-    ) -> Result<(), Error> {
+    ) -> Result<(), CircuitError> {
         let wire = Wire::new(id, input)?;
         self.add(wire)?;
         Ok(())
     }
 
-    pub fn add_wire_with_value<S: Into<String>>(&mut self, id: S, value: u16) -> Result<(), Error> {
+    pub fn add_wire_with_value<S: Into<String>>(
+        &mut self,
+        id: S,
+        value: u16,
+    ) -> Result<(), CircuitError> {
         let wire = Wire::with_value(id, value)?;
         self.add(wire)?;
         Ok(())
@@ -51,13 +55,17 @@ impl Circuit {
         &mut self,
         id: S,
         input_id: T,
-    ) -> Result<(), Error> {
+    ) -> Result<(), CircuitError> {
         let wire = Wire::from_wire(id, input_id)?;
         self.add(wire)?;
         Ok(())
     }
 
-    pub fn add_wire_from_gate<S: Into<String>>(&mut self, id: S, gate: Gate) -> Result<(), Error> {
+    pub fn add_wire_from_gate<S: Into<String>>(
+        &mut self,
+        id: S,
+        gate: Gate,
+    ) -> Result<(), CircuitError> {
         let wire = Wire::from_gate(id, gate)?;
         self.add(wire)?;
         Ok(())
@@ -68,7 +76,7 @@ impl Circuit {
         output: S,
         input1: T,
         input2: U,
-    ) -> Result<(), Error> {
+    ) -> Result<(), CircuitError> {
         let gate = Gate::and(input1, input2)?;
         let wire = Wire::from_gate(output, gate)?;
         self.add(wire)?;
@@ -80,7 +88,7 @@ impl Circuit {
         output: S,
         input: T,
         value: u16,
-    ) -> Result<(), Error> {
+    ) -> Result<(), CircuitError> {
         let gate = Gate::and_value(input, value)?;
         let wire = Wire::from_gate(output, gate)?;
         self.add(wire)?;
@@ -92,7 +100,7 @@ impl Circuit {
         output: S,
         input1: T,
         input2: U,
-    ) -> Result<(), Error> {
+    ) -> Result<(), CircuitError> {
         let gate = Gate::or(input1, input2)?;
         let wire = Wire::from_gate(output, gate)?;
         self.add(wire)?;
@@ -104,7 +112,7 @@ impl Circuit {
         output: S,
         input: T,
         value: u16,
-    ) -> Result<(), Error> {
+    ) -> Result<(), CircuitError> {
         let gate = Gate::or_value(input, value)?;
         let wire = Wire::from_gate(output, gate)?;
         self.add(wire)?;
@@ -116,7 +124,7 @@ impl Circuit {
         output: S,
         input: T,
         shift: u8,
-    ) -> Result<(), Error> {
+    ) -> Result<(), CircuitError> {
         let gate = Gate::sll(input, shift)?;
         let wire = Wire::from_gate(output, gate)?;
         self.add(wire)?;
@@ -128,7 +136,7 @@ impl Circuit {
         output: S,
         input: T,
         shift: u8,
-    ) -> Result<(), Error> {
+    ) -> Result<(), CircuitError> {
         let gate = Gate::slr(input, shift)?;
         let wire = Wire::from_gate(output, gate)?;
         self.add(wire)?;
@@ -139,7 +147,7 @@ impl Circuit {
         &mut self,
         output: S,
         input: T,
-    ) -> Result<(), Error> {
+    ) -> Result<(), CircuitError> {
         let gate = Gate::not(input)?;
         let wire = Wire::from_gate(output, gate)?;
         self.add(wire)?;
@@ -265,9 +273,9 @@ impl Circuit {
         }
     }
 
-    pub fn read<P: AsRef<Path>>(path: P) -> Result<Self, Error> {
+    pub fn read<P: AsRef<Path>>(path: P) -> Result<Self, ParseCircuitError> {
         let s = fs::read_to_string(path)?;
-        Ok(Self::from(&s)) // TODO: implement and use try_from
+        Self::try_from(s.as_str())
     }
 }
 
@@ -280,13 +288,15 @@ impl fmt::Display for Circuit {
     }
 }
 
-impl<S: AsRef<str>> From<S> for Circuit {
-    fn from(s: S) -> Self {
+impl TryFrom<&str> for Circuit {
+    type Error = ParseCircuitError;
+
+    fn try_from(s: &str) -> Result<Self, ParseCircuitError> {
         let mut circuit = Circuit::new();
-        for wire in s.as_ref().trim_end().split('\n') {
-            circuit.add(wire.into()).unwrap();
+        for wire in s.trim_end().split('\n') {
+            circuit.add(wire.try_into()?)?
         }
-        circuit
+        Ok(circuit)
     }
 }
 
@@ -395,7 +405,7 @@ mod tests {
 		 x LSHIFT 2 -> f\n\
 		 123 -> x\n\
 		 456 -> y";
-        let c1 = Circuit::from(s);
+        let c1 = Circuit::try_from(s).unwrap();
 
         let mut c2 = Circuit::new();
         c2.add_wire_with_value("x", 123).unwrap();
@@ -751,14 +761,14 @@ mod tests {
 		 NOT h -> i\n\
 		 NOT hn -> ho\n\
 		 he RSHIFT 5 -> hh";
-        let mut c = Circuit::from(s);
+        let mut c = Circuit::try_from(s).unwrap();
         c.compute_signals();
         // println!("{}", c);
     }
 
     #[test]
     fn read_example_input() {
-        let c = Circuit::read("instructions/input.txtd").unwrap();
+        let c = Circuit::read("instructions/input.txt").unwrap();
         println!("{}", c);
     }
 }

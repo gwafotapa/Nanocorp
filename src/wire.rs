@@ -1,6 +1,9 @@
 use std::fmt; // use crate::signal::Signal;
 
-use crate::{error::Error, gate::Gate};
+use crate::{
+    error::{ParseWireError, WireError, WireIdError},
+    gate::Gate,
+};
 
 pub type WireId = String;
 
@@ -28,7 +31,7 @@ impl Wire {
     //     })
     // }
 
-    pub fn new<S: Into<String>>(id: S, input: WireInput) -> Result<Self, Error> {
+    pub fn new<S: Into<String>>(id: S, input: WireInput) -> Result<Self, WireError> {
         match input {
             // None => Self::no_input(id),
             WireInput::Value(value) => Self::with_value(id, value),
@@ -37,16 +40,7 @@ impl Wire {
         }
     }
 
-    pub fn test(id: String, input: WireInput) -> Result<Self, Error> {
-        match input {
-            // None => Self::no_input(id),
-            WireInput::Value(value) => Self::with_value(id, value),
-            WireInput::Wire(input_id) => Self::from_wire(id, input_id),
-            WireInput::Gate(gate) => Self::from_gate(id, gate),
-        }
-    }
-
-    pub fn with_value<S: Into<String>>(id: S, value: u16) -> Result<Self, Error> {
+    pub fn with_value<S: Into<String>>(id: S, value: u16) -> Result<Self, WireError> {
         let id = id.into();
         if id.bytes().all(|b| b.is_ascii_lowercase()) {
             Ok(Self {
@@ -55,11 +49,14 @@ impl Wire {
                 signal: None,
             })
         } else {
-            Err(Error::WrongFormatId(id))
+            Err(WireIdError(id).into())
         }
     }
 
-    pub fn from_wire<S: Into<String>, T: Into<String>>(id: S, input_id: T) -> Result<Self, Error> {
+    pub fn from_wire<S: Into<String>, T: Into<String>>(
+        id: S,
+        input_id: T,
+    ) -> Result<Self, WireError> {
         let id = id.into();
         let input_id = input_id.into();
         if id.bytes().all(|b| b.is_ascii_lowercase())
@@ -71,11 +68,11 @@ impl Wire {
                 signal: None,
             })
         } else {
-            Err(Error::WrongFormatId(id))
+            Err(WireIdError(id).into())
         }
     }
 
-    pub fn from_gate<S: Into<String>>(id: S, gate: Gate) -> Result<Self, Error> {
+    pub fn from_gate<S: Into<String>>(id: S, gate: Gate) -> Result<Self, WireError> {
         let id = id.into();
         if id.bytes().all(|b| b.is_ascii_lowercase()) {
             Ok(Self {
@@ -84,7 +81,7 @@ impl Wire {
                 signal: None,
             })
         } else {
-            Err(Error::WrongFormatId(id))
+            Err(WireIdError(id).into())
         }
     }
 
@@ -92,7 +89,7 @@ impl Wire {
         id: S,
         input1: T,
         input2: U,
-    ) -> Result<Self, Error> {
+    ) -> Result<Self, WireError> {
         let gate = Gate::and(input1, input2)?;
         Wire::from_gate(id, gate)
     }
@@ -101,7 +98,7 @@ impl Wire {
         id: S,
         input: T,
         value: u16,
-    ) -> Result<Self, Error> {
+    ) -> Result<Self, WireError> {
         let gate = Gate::and_value(input, value)?;
         Wire::from_gate(id, gate)
     }
@@ -110,7 +107,7 @@ impl Wire {
         id: S,
         input1: T,
         input2: U,
-    ) -> Result<Self, Error> {
+    ) -> Result<Self, WireError> {
         let gate = Gate::or(input1, input2)?;
         Wire::from_gate(id, gate)
     }
@@ -120,7 +117,7 @@ impl Wire {
         id: S,
         input: T,
         value: u16,
-    ) -> Result<Self, Error> {
+    ) -> Result<Self, WireError> {
         let gate = Gate::or_value(input, value)?;
         Wire::from_gate(id, gate)
     }
@@ -129,7 +126,7 @@ impl Wire {
         id: S,
         input: T,
         shift: u8,
-    ) -> Result<Self, Error> {
+    ) -> Result<Self, WireError> {
         let gate = Gate::sll(input, shift)?;
         Wire::from_gate(id, gate)
     }
@@ -138,12 +135,15 @@ impl Wire {
         id: S,
         input: T,
         shift: u8,
-    ) -> Result<Self, Error> {
+    ) -> Result<Self, WireError> {
         let gate = Gate::slr(input, shift)?;
         Wire::from_gate(id, gate)
     }
 
-    pub fn from_gate_not<S: Into<String>, T: Into<String>>(id: S, input: T) -> Result<Self, Error> {
+    pub fn from_gate_not<S: Into<String>, T: Into<String>>(
+        id: S,
+        input: T,
+    ) -> Result<Self, WireError> {
         let gate = Gate::not(input)?;
         Wire::from_gate(id, gate)
     }
@@ -197,77 +197,32 @@ impl fmt::Display for Wire {
             WireInput::Wire(input_id) => {
                 write!(f, "{} -> {}", input_id, self.id)
             }
-            WireInput::Gate(gate) => match gate {
-                Gate::And { input1, input2 } => {
-                    write!(f, "{} AND {} -> {}", input1, input2, self.id)
-                }
-                Gate::AndValue { input, value } => {
-                    write!(f, "{} AND {} -> {}", input, value, self.id)
-                }
-                Gate::Or { input1, input2 } => {
-                    write!(f, "{} OR {} -> {}", input1, input2, self.id)
-                }
-                Gate::OrValue { input, value } => {
-                    write!(f, "{} OR {} -> {}", input, value, self.id)
-                }
-                Gate::SLL { input, shift } => {
-                    write!(f, "{} LSHIFT {} -> {}", input, shift, self.id)
-                }
-                Gate::SLR { input, shift } => {
-                    write!(f, "{} RSHIFT {} -> {}", input, shift, self.id)
-                }
-                Gate::Not { input } => {
-                    write!(f, "NOT {} -> {}", input, self.id)
-                }
-            },
+            WireInput::Gate(gate) => {
+                write!(f, "{} -> {}", gate, self.id)
+            }
         }
     }
 }
 
-impl<S: AsRef<str>> From<S> for Wire {
-    fn from(s: S) -> Self {
-        let s = s.as_ref();
-        let (input, output) = s.split_once(" -> ").unwrap();
+impl TryFrom<&str> for Wire {
+    type Error = ParseWireError;
+
+    fn try_from(s: &str) -> Result<Self, ParseWireError> {
+        let (input, output) = s
+            .split_once(" -> ")
+            .ok_or(ParseWireError::MissingArrow(s.to_string()))?;
         let inputs: Vec<&str> = input.split(' ').collect();
         let wire_input = match inputs.len() {
             1 => {
-                if inputs[0].as_bytes()[0].is_ascii_lowercase() {
-                    WireInput::Wire(inputs[0].to_string())
+                if let Ok(value) = inputs[0].parse::<u16>() {
+                    WireInput::Value(value)
                 } else {
-                    WireInput::Value(inputs[0].parse::<u16>().unwrap())
+                    WireInput::Wire(inputs[0].to_string())
                 }
             }
-            2 => WireInput::Gate(Gate::not(inputs[1]).unwrap()),
-            3 => WireInput::Gate(match inputs[1] {
-                "AND" => {
-                    if inputs[0].bytes().all(|b| b.is_ascii_digit()) {
-                        let value = inputs[0].parse::<u16>().unwrap();
-                        Gate::and_value(inputs[2], value).unwrap()
-                    } else if inputs[2].bytes().all(|b| b.is_ascii_digit()) {
-                        let value = inputs[2].parse::<u16>().unwrap();
-                        Gate::and_value(inputs[0], value).unwrap()
-                    } else {
-                        Gate::and(inputs[0], inputs[2]).unwrap()
-                    }
-                }
-                "OR" => {
-                    if inputs[0].bytes().all(|b| b.is_ascii_digit()) {
-                        let value = inputs[0].parse::<u16>().unwrap();
-                        Gate::or_value(inputs[2], value).unwrap()
-                    } else if inputs[2].bytes().all(|b| b.is_ascii_digit()) {
-                        let value = inputs[2].parse::<u16>().unwrap();
-                        Gate::or_value(inputs[0], value).unwrap()
-                    } else {
-                        Gate::or(inputs[0], inputs[2]).unwrap()
-                    }
-                }
-                "LSHIFT" => Gate::sll(inputs[0], inputs[2].parse::<u8>().unwrap()).unwrap(),
-                "RSHIFT" => Gate::slr(inputs[0], inputs[2].parse::<u8>().unwrap()).unwrap(),
-                _ => panic!("Cannot convert string \"{}\" to wire", s),
-            }),
-            _ => panic!("Cannot convert string \"{}\" to wire", s),
+            _ => WireInput::Gate(Gate::try_from(input)?),
         };
-        Wire::new(output, wire_input).unwrap()
+        Ok(Wire::new(output, wire_input)?)
     }
 }
 
@@ -296,35 +251,35 @@ mod tests {
 
     #[test]
     fn from() {
-        let w1 = Wire::from("456 -> y");
+        let w1 = Wire::try_from("456 -> y").unwrap();
         let w2 = Wire::with_value("y", 456).unwrap();
         assert_eq!(w1, w2);
 
-        let w1 = Wire::from("x LSHIFT 2 -> f");
+        let w1 = Wire::try_from("x LSHIFT 2 -> f").unwrap();
         let w2 = Wire::from_gate_sll("f", "x", 2).unwrap();
         assert_eq!(w1, w2);
 
-        let w1 = Wire::from("NOT; x -> h");
+        let w1 = Wire::try_from("NOT x -> h").unwrap();
         let w2 = Wire::from_gate_not("h", "x").unwrap();
         assert_eq!(w1, w2);
 
-        let w1 = Wire::from("x OR y -> e");
+        let w1 = Wire::try_from("x OR y -> e").unwrap();
         let w2 = Wire::from_gate_or("e", "x", "y").unwrap();
         assert_eq!(w1, w2);
 
-        let w1 = Wire::from("y RSHIFT 2 -> g");
+        let w1 = Wire::try_from("y RSHIFT 2 -> g").unwrap();
         let w2 = Wire::from_gate_slr("g", "y", 2).unwrap();
         assert_eq!(w1, w2);
 
-        let w1 = Wire::from("NOT y -> i");
+        let w1 = Wire::try_from("NOT y -> i").unwrap();
         let w2 = Wire::from_gate_not("i", "y").unwrap();
         assert_eq!(w1, w2);
 
-        let w1 = Wire::from("123 -> x");
+        let w1 = Wire::try_from("123 -> x").unwrap();
         let w2 = Wire::with_value("x", 123).unwrap();
         assert_eq!(w1, w2);
 
-        let w1 = Wire::from("x AND y -> d");
+        let w1 = Wire::try_from("x AND y -> d").unwrap();
         let w2 = Wire::from_gate_and("d", "x", "y").unwrap();
         assert_eq!(w1, w2);
     }
