@@ -1,4 +1,10 @@
-use std::{collections::HashMap, fmt, fs, path::Path};
+use std::{
+    collections::HashMap,
+    fmt,
+    fs::{self, File},
+    io::{self, Write},
+    path::Path,
+};
 
 use crate::{
     error::{CircuitError, ParseCircuitError},
@@ -277,6 +283,12 @@ impl Circuit {
         let s = fs::read_to_string(path)?;
         Self::try_from(s.as_str())
     }
+
+    pub fn write<P: AsRef<Path>>(&self, path: P) -> Result<(), io::Error> {
+        let data = self.to_string();
+        let mut f = File::create(path)?;
+        f.write_all(data.as_bytes())
+    }
 }
 
 impl fmt::Display for Circuit {
@@ -337,31 +349,31 @@ mod tests {
     }
 
     #[test]
-    fn nanocorp_example_1() {
-        let x = Wire::with_value("x", 123).unwrap();
-        let y = Wire::with_value("y", 456).unwrap();
-        let gd = Gate::and("x", "y").unwrap();
-        let ge = Gate::or("x", "y").unwrap();
-        let gf = Gate::sll("x", 2).unwrap();
-        let gg = Gate::slr("y", 2).unwrap();
-        let gh = Gate::not("x").unwrap();
-        let gi = Gate::not("y").unwrap();
-        let d = Wire::from_gate("d", gd).unwrap();
-        let e = Wire::from_gate("e", ge).unwrap();
-        let f = Wire::from_gate("f", gf).unwrap();
-        let g = Wire::from_gate("g", gg).unwrap();
-        let h = Wire::from_gate("h", gh).unwrap();
-        let i = Wire::from_gate("i", gi).unwrap();
+    fn nanocorp_example_1() -> Result<(), CircuitError> {
+        let x = Wire::with_value("x", 123)?;
+        let y = Wire::with_value("y", 456)?;
+        let gd = Gate::and("x", "y")?;
+        let ge = Gate::or("x", "y")?;
+        let gf = Gate::sll("x", 2)?;
+        let gg = Gate::slr("y", 2)?;
+        let gh = Gate::not("x")?;
+        let gi = Gate::not("y")?;
+        let d = Wire::from_gate("d", gd)?;
+        let e = Wire::from_gate("e", ge)?;
+        let f = Wire::from_gate("f", gf)?;
+        let g = Wire::from_gate("g", gg)?;
+        let h = Wire::from_gate("h", gh)?;
+        let i = Wire::from_gate("i", gi)?;
 
         let mut circuit = Circuit::new();
-        circuit.add(x).unwrap();
-        circuit.add(y).unwrap();
-        circuit.add(d).unwrap();
-        circuit.add(e).unwrap();
-        circuit.add(f).unwrap();
-        circuit.add(g).unwrap();
-        circuit.add(h).unwrap();
-        circuit.add(i).unwrap();
+        circuit.add(x)?;
+        circuit.add(y)?;
+        circuit.add(d)?;
+        circuit.add(e)?;
+        circuit.add(f)?;
+        circuit.add(g)?;
+        circuit.add(h)?;
+        circuit.add(i)?;
 
         circuit.compute_signals();
 
@@ -373,19 +385,20 @@ mod tests {
         assert_eq!(circuit.get_signal("i"), Some(65079));
         assert_eq!(circuit.get_signal("x"), Some(123));
         assert_eq!(circuit.get_signal("y"), Some(456));
+        Ok(())
     }
 
     #[test]
-    fn nanocorp_example_1_bis() {
+    fn nanocorp_example_1_bis() -> Result<(), CircuitError> {
         let mut circuit = Circuit::new();
-        circuit.add_wire_with_value("x", 123).unwrap();
-        circuit.add_wire_with_value("y", 456).unwrap();
-        circuit.add_gate_and("d", "x", "y").unwrap();
-        circuit.add_gate_or("e", "x", "y").unwrap();
-        circuit.add_gate_sll("f", "x", 2).unwrap();
-        circuit.add_gate_slr("g", "y", 2).unwrap();
-        circuit.add_gate_not("h", "x").unwrap();
-        circuit.add_gate_not("i", "y").unwrap();
+        circuit.add_wire_with_value("x", 123)?;
+        circuit.add_wire_with_value("y", 456)?;
+        circuit.add_gate_and("d", "x", "y")?;
+        circuit.add_gate_or("e", "x", "y")?;
+        circuit.add_gate_sll("f", "x", 2)?;
+        circuit.add_gate_slr("g", "y", 2)?;
+        circuit.add_gate_not("h", "x")?;
+        circuit.add_gate_not("i", "y")?;
         circuit.compute_signals();
 
         println!("{}", circuit);
@@ -398,10 +411,11 @@ mod tests {
         assert_eq!(circuit.get_signal("i"), Some(65079));
         assert_eq!(circuit.get_signal("x"), Some(123));
         assert_eq!(circuit.get_signal("y"), Some(456));
+        Ok(())
     }
 
     #[test]
-    fn try_from_nanocorp_example_1() {
+    fn try_from_nanocorp_example_1() -> Result<(), CircuitError> {
         let s = "x AND y -> d\n\
 		 NOT x -> h\n\
 		 NOT y -> i\n\
@@ -413,22 +427,38 @@ mod tests {
         let c1 = Circuit::try_from(s).unwrap();
 
         let mut c2 = Circuit::new();
-        c2.add_wire_with_value("x", 123).unwrap();
-        c2.add_wire_with_value("y", 456).unwrap();
-        c2.add_gate_and("d", "x", "y").unwrap();
-        c2.add_gate_or("e", "x", "y").unwrap();
-        c2.add_gate_sll("f", "x", 2).unwrap();
-        c2.add_gate_slr("g", "y", 2).unwrap();
-        c2.add_gate_not("h", "x").unwrap();
-        c2.add_gate_not("i", "y").unwrap();
+        c2.add_wire_with_value("x", 123)?;
+        c2.add_wire_with_value("y", 456)?;
+        c2.add_gate_and("d", "x", "y")?;
+        c2.add_gate_or("e", "x", "y")?;
+        c2.add_gate_sll("f", "x", 2)?;
+        c2.add_gate_slr("g", "y", 2)?;
+        c2.add_gate_not("h", "x")?;
+        c2.add_gate_not("i", "y")?;
 
         assert_eq!(c1, c2);
+        Ok(())
     }
 
     #[test]
     fn read_nanocorp_example_2() -> Result<(), ParseCircuitError> {
-        let c = Circuit::read("instructions/input.txt")?;
+        let c = Circuit::read("circuits/nanocorp_2.txt")?;
         println!("{}", c);
+        Ok(())
+    }
+
+    #[test]
+    fn write_nanocorp_example_1() -> Result<(), CircuitError> {
+        let mut c = Circuit::new();
+        c.add_wire_with_value("x", 123)?;
+        c.add_wire_with_value("y", 456)?;
+        c.add_gate_and("d", "x", "y")?;
+        c.add_gate_or("e", "x", "y")?;
+        c.add_gate_sll("f", "x", 2)?;
+        c.add_gate_slr("g", "y", 2)?;
+        c.add_gate_not("h", "x")?;
+        c.add_gate_not("i", "y")?;
+        c.write("circuits/nanocorp_1.txt").unwrap();
         Ok(())
     }
 }
