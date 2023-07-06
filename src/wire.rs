@@ -230,27 +230,19 @@ impl TryFrom<&str> for Wire {
 mod tests {
     use super::*;
 
-    // #[test]
-    // fn ids() {
-    // assert!(Wire::no_input("A").is_none());
-    // assert!(Wire::no_input("3").is_none());
-    // assert!(Wire::no_input("nano corp").is_none());
-    // assert!(Wire::no_input("nanocorp").is_some());
-    // assert!(Wire::no_input("wire!").is_none());
-    // assert!(Wire::no_input("z\n").is_none());
-    // }
-
-    // #[test]
-    // fn inputs() {
-    // let w1 = Wire::new("a", WireInput::Value(1)).unwrap();
-    // assert_eq!(w1.signal, Some(1));
-
-    // let w2 = Wire::new("b", WireInput::Wire(&w1)).unwrap();
-    // assert_eq!(w2.signal, Some(1));
-    // }
+    #[test]
+    fn ids() {
+        assert!(Wire::with_value("A", 3).is_err());
+        assert!(Wire::from_wire("1", "2").is_err());
+        assert!(Wire::with_value("nano corp", 9).is_err());
+        assert!(Wire::with_value("nanocorp", 9).is_ok());
+        assert!(Wire::from_wire("nano", "corp").is_ok());
+        assert!(Wire::with_value("wire!", 2).is_err());
+        assert!(Wire::with_value("z\n", 0).is_err());
+    }
 
     #[test]
-    fn from() {
+    fn from_strings() {
         let w1 = Wire::try_from("456 -> y").unwrap();
         let w2 = Wire::with_value("y", 456).unwrap();
         assert_eq!(w1, w2);

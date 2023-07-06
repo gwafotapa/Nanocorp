@@ -29,7 +29,7 @@ pub enum WireError {
 #[derive(Error, Debug)]
 pub enum CircuitError {
     #[error("Circuit already has a wire whose id is '{0}'")]
-    ConflictingWireId(WireId),
+    IdAlreadyExists(WireId),
 
     #[error(transparent)]
     InvalidGate(#[from] GateError),

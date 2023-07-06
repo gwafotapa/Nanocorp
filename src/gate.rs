@@ -159,3 +159,21 @@ impl TryFrom<&str> for Gate {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn invalid_ids() {
+        assert!(Gate::not("A").is_err());
+        assert!(Gate::not("#hashtag").is_err());
+        assert!(Gate::and("input1", "input 2").is_err());
+    }
+
+    #[test]
+    fn shifts() {
+        assert!(Gate::slr("sh", 15).is_ok());
+        assert!(Gate::slr("sh", 16).is_err());
+    }
+}
