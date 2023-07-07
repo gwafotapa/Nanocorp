@@ -165,14 +165,14 @@ mod tests {
 
         circuit.compute_signals();
 
-        assert!(matches!(circuit.signal("d"), Ok(Some(72))));
-        assert!(matches!(circuit.signal("e"), Ok(Some(507))));
-        assert!(matches!(circuit.signal("f"), Ok(Some(492))));
-        assert!(matches!(circuit.signal("g"), Ok(Some(114))));
-        assert!(matches!(circuit.signal("h"), Ok(Some(65412))));
-        assert!(matches!(circuit.signal("i"), Ok(Some(65079))));
-        assert!(matches!(circuit.signal("x"), Ok(Some(123))));
-        assert!(matches!(circuit.signal("y"), Ok(Some(456))));
+        assert!(matches!(circuit.get_signal_from("d"), Ok(Some(72))));
+        assert!(matches!(circuit.get_signal_from("e"), Ok(Some(507))));
+        assert!(matches!(circuit.get_signal_from("f"), Ok(Some(492))));
+        assert!(matches!(circuit.get_signal_from("g"), Ok(Some(114))));
+        assert!(matches!(circuit.get_signal_from("h"), Ok(Some(65412))));
+        assert!(matches!(circuit.get_signal_from("i"), Ok(Some(65079))));
+        assert!(matches!(circuit.get_signal_from("x"), Ok(Some(123))));
+        assert!(matches!(circuit.get_signal_from("y"), Ok(Some(456))));
     }
 
     #[test]
@@ -190,14 +190,14 @@ mod tests {
 
         circuit.compute_signals();
 
-        assert!(matches!(circuit.signal("d"), Ok(Some(72))));
-        assert!(matches!(circuit.signal("e"), Ok(Some(507))));
-        assert!(matches!(circuit.signal("f"), Ok(Some(492))));
-        assert!(matches!(circuit.signal("g"), Ok(Some(114))));
-        assert!(matches!(circuit.signal("h"), Ok(Some(65412))));
-        assert!(matches!(circuit.signal("i"), Ok(Some(65079))));
-        assert!(matches!(circuit.signal("x"), Ok(Some(123))));
-        assert!(matches!(circuit.signal("y"), Ok(Some(456))));
+        assert!(matches!(circuit.get_signal_from("d"), Ok(Some(72))));
+        assert!(matches!(circuit.get_signal_from("e"), Ok(Some(507))));
+        assert!(matches!(circuit.get_signal_from("f"), Ok(Some(492))));
+        assert!(matches!(circuit.get_signal_from("g"), Ok(Some(114))));
+        assert!(matches!(circuit.get_signal_from("h"), Ok(Some(65412))));
+        assert!(matches!(circuit.get_signal_from("i"), Ok(Some(65079))));
+        assert!(matches!(circuit.get_signal_from("x"), Ok(Some(123))));
+        assert!(matches!(circuit.get_signal_from("y"), Ok(Some(456))));
     }
 
     #[test]
@@ -212,6 +212,6 @@ mod tests {
             .build();
 
         circuit.compute_signals();
-        assert!(matches!(circuit.signal("xor"), Ok(Some(0xaa03))));
+        assert!(matches!(circuit.get_signal_from("xor"), Ok(Some(0xaa03))));
     }
 }

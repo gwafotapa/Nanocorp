@@ -13,6 +13,7 @@ use crate::{
     wire_id::WireId,
 };
 
+// TODO: check for types implementing clone, copy, ...
 #[derive(Debug, PartialEq)]
 pub struct Circuit {
     pub wires: HashMap<WireId, Wire>,
@@ -33,7 +34,7 @@ impl Circuit {
         if self.wires.contains_key(&wire.id) {
             Err(Error::WireIdAlreadyExists(wire.id))
         } else {
-            self.wires.insert(wire.id.clone(), wire);
+            self.wires.insert(wire.id.to_owned(), wire);
             Ok(())
         }
     }
@@ -146,7 +147,7 @@ impl Circuit {
     // TODO: check for loops
     // TODO: add result return type
     pub fn compute_signals(&mut self) -> bool {
-        let mut ids: Vec<WireId> = self.wires.keys().map(|id| id.clone()).collect();
+        let mut ids: Vec<WireId> = self.wires.keys().map(|id| id.to_owned()).collect();
         while let Some(id) = ids.last() {
             if let Some(wire) = self.wires.get(id) {
                 match &wire.input {
@@ -155,89 +156,126 @@ impl Circuit {
                         ids.pop();
                     }
                     WireInput::Wire(input_id) => {
-                        if let Some(signal) = self.get_signal(input_id) {
-                            self.set_signal_of(id, Some(signal));
-                            ids.pop();
+                        if let Ok(input_wire) = self.get_wire(input_id) {
+                            if let Some(signal) = input_wire.signal {
+                                self.set_signal_of(id, Some(signal));
+                                ids.pop();
+                            } else {
+                                ids.push(input_id.to_owned());
+                            }
                         } else {
-                            ids.push(input_id.clone());
+                            // Unknown wire
+                            ids.pop();
                         }
                     }
                     WireInput::Gate(gate) => match gate {
                         Gate::And { input1, input2 } => {
-                            if let Some(signal1) = self.get_signal(input1) {
-                                if let Some(signal2) = self.get_signal(input2) {
-                                    self.set_signal_of(id, Some(signal1 & signal2));
-                                    ids.pop();
+                            if let (Ok(wire1), Ok(wire2)) =
+                                (self.get_wire(input1), self.get_wire(input2))
+                            {
+                                if let Some(signal1) = wire1.signal {
+                                    if let Some(signal2) = wire2.signal {
+                                        self.set_signal_of(id, Some(signal1 & signal2));
+                                        ids.pop();
+                                    } else {
+                                        ids.push(input2.to_owned());
+                                    }
                                 } else {
-                                    ids.push(input2.clone());
+                                    ids.push(input1.to_owned());
+                                    if wire2.signal.is_none() {
+                                        ids.push(input2.to_owned());
+                                    }
                                 }
                             } else {
-                                ids.push(input1.clone());
-                                if self.get_signal(input2).is_none() {
-                                    ids.push(input2.clone());
-                                }
+                                ids.pop();
                             }
                         }
                         Gate::AndValue { input, value } => {
-                            if let Some(signal1) = self.get_signal(input) {
-                                self.set_signal_of(id, Some(signal1 & value));
-                                ids.pop();
+                            if let Ok(input_wire) = self.get_wire(input) {
+                                if let Some(signal) = input_wire.signal {
+                                    self.set_signal_of(id, Some(signal & value));
+                                    ids.pop();
+                                } else {
+                                    ids.push(input.to_owned());
+                                }
                             } else {
-                                ids.push(input.clone());
+                                ids.pop();
                             }
                         }
                         Gate::Or { input1, input2 } => {
-                            if let Some(signal1) = self.get_signal(input1) {
-                                if let Some(signal2) = self.get_signal(input2) {
-                                    self.set_signal_of(id, Some(signal1 | signal2));
-                                    ids.pop();
+                            if let (Ok(wire1), Ok(wire2)) =
+                                (self.get_wire(input1), self.get_wire(input2))
+                            {
+                                if let Some(signal1) = wire1.signal {
+                                    if let Some(signal2) = wire2.signal {
+                                        self.set_signal_of(id, Some(signal1 | signal2));
+                                        ids.pop();
+                                    } else {
+                                        ids.push(input2.to_owned());
+                                    }
                                 } else {
-                                    ids.push(input2.clone());
+                                    ids.push(input1.to_owned());
+                                    if wire2.signal.is_none() {
+                                        ids.push(input2.to_owned());
+                                    }
                                 }
                             } else {
-                                ids.push(input1.clone());
-                                if self.get_signal(input2).is_none() {
-                                    ids.push(input2.clone());
-                                }
+                                ids.pop();
                             }
                         }
                         Gate::OrValue { input, value } => {
-                            if let Some(signal1) = self.get_signal(input) {
-                                self.set_signal_of(id, Some(signal1 | value));
-                                ids.pop();
+                            if let Ok(input_wire) = self.get_wire(input) {
+                                if let Some(signal) = input_wire.signal {
+                                    self.set_signal_of(id, Some(signal | value));
+                                    ids.pop();
+                                } else {
+                                    ids.push(input.to_owned());
+                                }
                             } else {
-                                ids.push(input.clone());
+                                ids.pop();
                             }
                         }
                         Gate::SLL { input, shift } => {
-                            if let Some(signal) = self.get_signal(input) {
-                                self.set_signal_of(id, Some(signal << shift));
-                                ids.pop();
+                            if let Ok(input_wire) = self.get_wire(input) {
+                                if let Some(signal) = input_wire.signal {
+                                    self.set_signal_of(id, Some(signal << shift));
+                                    ids.pop();
+                                } else {
+                                    ids.push(input.to_owned());
+                                }
                             } else {
-                                ids.push(input.clone());
+                                ids.pop();
                             }
                         }
                         Gate::SLR { input, shift } => {
-                            if let Some(signal) = self.get_signal(input) {
-                                self.set_signal_of(id, Some(signal >> shift));
-                                ids.pop();
+                            if let Ok(input_wire) = self.get_wire(input) {
+                                if let Some(signal) = input_wire.signal {
+                                    self.set_signal_of(id, Some(signal >> shift));
+                                    ids.pop();
+                                } else {
+                                    ids.push(input.to_owned());
+                                }
                             } else {
-                                ids.push(input.clone());
+                                ids.pop();
                             }
                         }
                         Gate::Not { input } => {
-                            if let Some(signal) = self.get_signal(input) {
-                                self.set_signal_of(id, Some(!signal));
-                                ids.pop();
+                            if let Ok(input_wire) = self.get_wire(input) {
+                                if let Some(signal) = input_wire.signal {
+                                    self.set_signal_of(id, Some(!signal));
+                                    ids.pop();
+                                } else {
+                                    ids.push(input.to_owned());
+                                }
                             } else {
-                                ids.push(input.clone());
+                                ids.pop();
                             }
                         }
                     },
                 }
             } else {
                 // Unkwown wire id
-                break;
+                ids.pop();
             }
         }
 
@@ -246,7 +284,9 @@ impl Circuit {
 
     fn get_wire(&self, id: &WireId) -> Result<&Wire, Error> {
         // TODO: check for use of clone instead of to_owned
-        self.wires.get(id).ok_or(Error::UnknownWire(id.to_owned()))
+        self.wires
+            .get(id)
+            .ok_or(Error::UnknownWireId(id.to_owned()))
     }
 
     fn wire(&self, id: &WireId) -> &Wire {
@@ -466,5 +506,48 @@ mod tests {
         c.add_gate_not("i", "y")?;
         c.write("circuits/nanocorp_1.txt").unwrap();
         Ok(())
+    }
+
+    #[test]
+    fn non_connected_wires() {
+        let mut c = Circuit::new();
+        c.add_wire_with_value("x", 0xfff0).unwrap();
+        c.add_wire_with_value("y", 0x0fff).unwrap();
+        c.add_gate_or("xoy", "x", "y").unwrap();
+        c.add_gate_and("xoyau", "xoy", "unknown").unwrap();
+        c.add_gate_sll("u", "unknown", 2).unwrap();
+        c.add_gate_slr("v", "unknown", 2).unwrap();
+        c.add_gate_not("nxoy", "xoy").unwrap();
+        c.add_gate_not("w", "unknown").unwrap();
+
+        c.compute_signals();
+
+        assert_eq!(c.signal_from("x"), Some(0xfff0));
+        assert_eq!(c.signal_from("y"), Some(0x0fff));
+        assert_eq!(c.signal_from("xoy"), Some(0xffff));
+        assert_eq!(c.signal_from("nxoy"), Some(0x0));
+        assert_eq!(c.signal_from("u"), None);
+        assert_eq!(c.signal_from("v"), None);
+        assert_eq!(c.signal_from("w"), None);
+        assert_eq!(c.signal_from("xoyau"), None);
+        assert!(matches!(
+            c.get_signal_from("unknown"),
+            Err(Error::UnknownWireId(_))
+        ));
+    }
+
+    #[test]
+    fn identical_gate_inputs() {
+        let x = 0xa35c;
+        let mut c = Circuit::new();
+        c.add_wire_with_value("x", x).unwrap();
+        c.add_gate_or("xox", "x", "x").unwrap();
+        c.add_gate_and("xax", "x", "x").unwrap();
+
+        c.compute_signals();
+
+        assert_eq!(c.signal_from("x"), Some(x));
+        assert_eq!(c.signal_from("xox"), Some(x));
+        assert_eq!(c.signal_from("xax"), Some(x));
     }
 }

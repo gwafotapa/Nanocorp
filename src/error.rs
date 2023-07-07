@@ -25,7 +25,10 @@ pub enum Error {
     WireIdAlreadyExists(WireId),
 
     #[error("Circuit has no wire '{0}'")]
-    UnknownWire(WireId),
+    UnknownWireId(WireId),
+
+    #[error("Identical input and output ids '{0}'")]
+    InputMatchesOutput(WireId),
 
     #[error(transparent)]
     InvalidPath(#[from] io::Error),

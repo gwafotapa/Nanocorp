@@ -48,6 +48,9 @@ impl Wire {
     pub fn from_wire<S: Into<String>, T: Into<String>>(id: S, input_id: T) -> Result<Self, Error> {
         let id = WireId::try_from(id.into())?;
         let input_id = WireId::try_from(input_id.into())?;
+        if id == input_id {
+            return Err(Error::InputMatchesOutput(id));
+        }
         Ok(Self {
             id,
             input: WireInput::Wire(input_id),
@@ -57,6 +60,9 @@ impl Wire {
 
     pub fn from_gate<S: Into<String>>(id: S, gate: Gate) -> Result<Self, Error> {
         let id = WireId::try_from(id.into())?;
+        if gate.has_input(&id) {
+            return Err(Error::InputMatchesOutput(id));
+        }
         Ok(Self {
             id,
             input: WireInput::Gate(gate),
@@ -238,6 +244,20 @@ mod tests {
         assert!(Wire::try_from("x ->w").is_err());
         assert!(Wire::try_from("1 ->  -> b").is_err());
         assert!(Wire::try_from("a -> b -> c").is_err());
+    }
+
+    #[test]
+    fn output_equals_input() {
+        assert!(Wire::from_wire("w", "w").is_err());
+        assert!(Wire::from_gate_and("w", "w", "x").is_err());
+        assert!(Wire::from_gate_and("w", "x", "w").is_err());
+        assert!(Wire::from_gate_or("w", "w", "x").is_err());
+        assert!(Wire::from_gate_or("w", "x", "w").is_err());
+        assert!(Wire::from_gate_and_value("w", "w", 1).is_err());
+        assert!(Wire::from_gate_or_value("w", "w", 1).is_err());
+        assert!(Wire::from_gate_sll("w", "w", 1).is_err());
+        assert!(Wire::from_gate_slr("w", "w", 1).is_err());
+        assert!(Wire::from_gate_not("w", "w").is_err());
     }
 
     #[test]

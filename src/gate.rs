@@ -59,6 +59,18 @@ impl Gate {
         let input = WireId::try_from(input.into())?;
         Ok(Self::Not { input })
     }
+
+    pub fn has_input(&self, id: &WireId) -> bool {
+        match self {
+            Gate::And { input1, input2 } => id == input1 || id == input2,
+            Gate::Or { input1, input2 } => id == input1 || id == input2,
+            Gate::AndValue { input, .. } => id == input,
+            Gate::OrValue { input, .. } => id == input,
+            Gate::SLL { input, .. } => id == input,
+            Gate::SLR { input, .. } => id == input,
+            Gate::Not { input } => id == input,
+        }
+    }
 }
 
 impl fmt::Display for Gate {
