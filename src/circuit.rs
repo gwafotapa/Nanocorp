@@ -9,7 +9,8 @@ use std::{
 use crate::{
     error::Error,
     gate::Gate,
-    wire::{Wire, WireId, WireInput},
+    wire::{Wire, WireInput},
+    wire_id::WireId,
 };
 
 #[derive(Debug, PartialEq)]
@@ -24,7 +25,7 @@ impl Circuit {
         }
     }
 
-    pub fn remove(&mut self, id: &str) {
+    pub fn remove(&mut self, id: &WireId) {
         self.wires.remove(id);
     }
 
@@ -145,91 +146,91 @@ impl Circuit {
     // TODO: check for loops
     // TODO: add result return type
     pub fn compute_signals(&mut self) -> bool {
-        let mut ids: Vec<String> = self.wires.keys().map(|id| id.into()).collect();
+        let mut ids: Vec<WireId> = self.wires.keys().map(|id| id.clone()).collect();
         while let Some(id) = ids.last() {
             if let Some(wire) = self.wires.get(id) {
                 match &wire.input {
                     WireInput::Value(value) => {
-                        self.set_signal(id, Some(*value));
+                        self.set_signal_of(id, Some(*value));
                         ids.pop();
                     }
                     WireInput::Wire(input_id) => {
                         if let Some(signal) = self.get_signal(input_id) {
-                            self.set_signal(id, Some(signal));
+                            self.set_signal_of(id, Some(signal));
                             ids.pop();
                         } else {
-                            ids.push(input_id.to_string());
+                            ids.push(input_id.clone());
                         }
                     }
                     WireInput::Gate(gate) => match gate {
                         Gate::And { input1, input2 } => {
                             if let Some(signal1) = self.get_signal(input1) {
                                 if let Some(signal2) = self.get_signal(input2) {
-                                    self.set_signal(id, Some(signal1 & signal2));
+                                    self.set_signal_of(id, Some(signal1 & signal2));
                                     ids.pop();
                                 } else {
-                                    ids.push(input2.to_string());
+                                    ids.push(input2.clone());
                                 }
                             } else {
-                                ids.push(input1.to_string());
+                                ids.push(input1.clone());
                                 if self.get_signal(input2).is_none() {
-                                    ids.push(input2.to_string());
+                                    ids.push(input2.clone());
                                 }
                             }
                         }
                         Gate::AndValue { input, value } => {
                             if let Some(signal1) = self.get_signal(input) {
-                                self.set_signal(id, Some(signal1 & value));
+                                self.set_signal_of(id, Some(signal1 & value));
                                 ids.pop();
                             } else {
-                                ids.push(input.to_string());
+                                ids.push(input.clone());
                             }
                         }
                         Gate::Or { input1, input2 } => {
                             if let Some(signal1) = self.get_signal(input1) {
                                 if let Some(signal2) = self.get_signal(input2) {
-                                    self.set_signal(id, Some(signal1 | signal2));
+                                    self.set_signal_of(id, Some(signal1 | signal2));
                                     ids.pop();
                                 } else {
-                                    ids.push(input2.to_string());
+                                    ids.push(input2.clone());
                                 }
                             } else {
-                                ids.push(input1.to_string());
+                                ids.push(input1.clone());
                                 if self.get_signal(input2).is_none() {
-                                    ids.push(input2.to_string());
+                                    ids.push(input2.clone());
                                 }
                             }
                         }
                         Gate::OrValue { input, value } => {
                             if let Some(signal1) = self.get_signal(input) {
-                                self.set_signal(id, Some(signal1 | value));
+                                self.set_signal_of(id, Some(signal1 | value));
                                 ids.pop();
                             } else {
-                                ids.push(input.to_string());
+                                ids.push(input.clone());
                             }
                         }
                         Gate::SLL { input, shift } => {
                             if let Some(signal) = self.get_signal(input) {
-                                self.set_signal(id, Some(signal << shift));
+                                self.set_signal_of(id, Some(signal << shift));
                                 ids.pop();
                             } else {
-                                ids.push(input.to_string());
+                                ids.push(input.clone());
                             }
                         }
                         Gate::SLR { input, shift } => {
                             if let Some(signal) = self.get_signal(input) {
-                                self.set_signal(id, Some(signal >> shift));
+                                self.set_signal_of(id, Some(signal >> shift));
                                 ids.pop();
                             } else {
-                                ids.push(input.to_string());
+                                ids.push(input.clone());
                             }
                         }
                         Gate::Not { input } => {
                             if let Some(signal) = self.get_signal(input) {
-                                self.set_signal(id, Some(!signal));
+                                self.set_signal_of(id, Some(!signal));
                                 ids.pop();
                             } else {
-                                ids.push(input.to_string());
+                                ids.push(input.clone());
                             }
                         }
                     },
@@ -243,11 +244,34 @@ impl Circuit {
         true
     }
 
-    pub fn get_signal(&self, id: &str) -> Option<u16> {
-        self.wires.get(id).and_then(|w| w.signal)
+    fn get_wire(&self, id: &WireId) -> Result<&Wire, Error> {
+        // TODO: check for use of clone instead of to_owned
+        self.wires.get(id).ok_or(Error::UnknownWire(id.to_owned()))
     }
 
-    fn set_signal(&mut self, id: &str, signal: Option<u16>) -> bool {
+    fn wire(&self, id: &WireId) -> &Wire {
+        self.get_wire(id).unwrap()
+    }
+
+    fn get_signal_of(&self, id: &WireId) -> Result<Option<u16>, Error> {
+        self.get_wire(id).map(|w| w.signal)
+    }
+
+    fn signal_of(&self, id: &WireId) -> Option<u16> {
+        self.get_signal_of(id).unwrap()
+    }
+
+    pub fn get_signal_from<S: AsRef<str>>(&self, id: S) -> Result<Option<u16>, Error> {
+        let id = WireId::try_from(id.as_ref())?;
+        self.get_signal_of(&id)
+    }
+
+    pub fn signal_from<S: AsRef<str>>(&self, id: S) -> Option<u16> {
+        self.get_signal_from(id).unwrap()
+    }
+
+    // TODO: Wire public or private ? wire.set_signal_of() and wire.get_signal() ?
+    fn set_signal_of(&mut self, id: &WireId, signal: Option<u16>) -> bool {
         // self.wires
         //     .get_mut(id)
         //     .map(|wire| wire.signal = signal)
@@ -311,21 +335,22 @@ mod tests {
         let w2 = Wire::from_wire("b", "a").unwrap();
         assert!(circuit.add(w1).is_ok());
         assert!(circuit.add(w2).is_ok());
-        assert_eq!(circuit.get_signal("z"), None);
-        assert_eq!(circuit.get_signal("a"), None);
-        assert_eq!(circuit.get_signal("b"), None);
+        assert!(circuit.get_signal_from("z").is_err()); // TODO: should return unknown wire error
+                                                        // TODO: remove matches! and use signal_from instead ?
+        assert!(matches!(circuit.get_signal_from("a"), Ok(None)));
+        assert!(matches!(circuit.get_signal_from("b"), Ok(None)));
 
         circuit.compute_signals();
-        assert_eq!(circuit.get_signal("a"), Some(1));
-        assert_eq!(circuit.get_signal("b"), Some(1));
+        assert!(matches!(circuit.get_signal_from("a"), Ok(Some(1))));
+        assert!(matches!(circuit.get_signal_from("b"), Ok(Some(1))));
 
         let g = Gate::not("b").unwrap();
         let c = Wire::from_gate("c", g).unwrap();
         circuit.add(c).unwrap();
-        assert_eq!(circuit.get_signal("c"), None);
+        assert!(matches!(circuit.get_signal_from("c"), Ok(None)));
 
         circuit.compute_signals();
-        assert_eq!(circuit.get_signal("c"), Some(0xfffe));
+        assert!(matches!(circuit.get_signal_from("c"), Ok(Some(0xfffe))));
         println!("{}", circuit);
     }
 
@@ -358,14 +383,14 @@ mod tests {
 
         circuit.compute_signals();
 
-        assert_eq!(circuit.get_signal("d"), Some(72));
-        assert_eq!(circuit.get_signal("e"), Some(507));
-        assert_eq!(circuit.get_signal("f"), Some(492));
-        assert_eq!(circuit.get_signal("g"), Some(114));
-        assert_eq!(circuit.get_signal("h"), Some(65412));
-        assert_eq!(circuit.get_signal("i"), Some(65079));
-        assert_eq!(circuit.get_signal("x"), Some(123));
-        assert_eq!(circuit.get_signal("y"), Some(456));
+        assert!(matches!(circuit.get_signal_from("d"), Ok(Some(72))));
+        assert!(matches!(circuit.get_signal_from("e"), Ok(Some(507))));
+        assert!(matches!(circuit.get_signal_from("f"), Ok(Some(492))));
+        assert!(matches!(circuit.get_signal_from("g"), Ok(Some(114))));
+        assert!(matches!(circuit.get_signal_from("h"), Ok(Some(65412))));
+        assert!(matches!(circuit.get_signal_from("i"), Ok(Some(65079))));
+        assert!(matches!(circuit.get_signal_from("x"), Ok(Some(123))));
+        assert!(matches!(circuit.get_signal_from("y"), Ok(Some(456))));
         Ok(())
     }
 
@@ -384,14 +409,14 @@ mod tests {
 
         println!("{}", circuit);
 
-        assert_eq!(circuit.get_signal("d"), Some(72));
-        assert_eq!(circuit.get_signal("e"), Some(507));
-        assert_eq!(circuit.get_signal("f"), Some(492));
-        assert_eq!(circuit.get_signal("g"), Some(114));
-        assert_eq!(circuit.get_signal("h"), Some(65412));
-        assert_eq!(circuit.get_signal("i"), Some(65079));
-        assert_eq!(circuit.get_signal("x"), Some(123));
-        assert_eq!(circuit.get_signal("y"), Some(456));
+        assert!(matches!(circuit.get_signal_from("d"), Ok(Some(72))));
+        assert!(matches!(circuit.get_signal_from("e"), Ok(Some(507))));
+        assert!(matches!(circuit.get_signal_from("f"), Ok(Some(492))));
+        assert!(matches!(circuit.get_signal_from("g"), Ok(Some(114))));
+        assert!(matches!(circuit.get_signal_from("h"), Ok(Some(65412))));
+        assert!(matches!(circuit.get_signal_from("i"), Ok(Some(65079))));
+        assert!(matches!(circuit.get_signal_from("x"), Ok(Some(123))));
+        assert!(matches!(circuit.get_signal_from("y"), Ok(Some(456))));
         Ok(())
     }
 

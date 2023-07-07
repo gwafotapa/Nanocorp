@@ -1,8 +1,6 @@
-use std::fmt; // use crate::signal::Signal;
+use std::{fmt, ops::Deref}; // use crate::signal::Signal;
 
-use crate::{error::Error, gate::Gate};
-
-pub type WireId = String;
+use crate::{error::Error, gate::Gate, wire_id::WireId};
 
 #[derive(Debug, PartialEq)]
 pub enum WireInput {
@@ -32,51 +30,38 @@ impl Wire {
         match input {
             // None => Self::no_input(id),
             WireInput::Value(value) => Self::with_value(id, value),
-            WireInput::Wire(input_id) => Self::from_wire(id, input_id),
+            // TODO: deref, as_ref or borrow ?
+            WireInput::Wire(input_id) => Self::from_wire(id, input_id.deref()),
             WireInput::Gate(gate) => Self::from_gate(id, gate),
         }
     }
 
     pub fn with_value<S: Into<String>>(id: S, value: u16) -> Result<Self, Error> {
-        let id = id.into();
-        if id.bytes().all(|b| b.is_ascii_lowercase()) {
-            Ok(Self {
-                id,
-                input: WireInput::Value(value),
-                signal: None,
-            })
-        } else {
-            Err(Error::InvalidWireId(id))
-        }
+        let id = WireId::try_from(id.into())?;
+        Ok(Self {
+            id,
+            input: WireInput::Value(value),
+            signal: None,
+        })
     }
 
     pub fn from_wire<S: Into<String>, T: Into<String>>(id: S, input_id: T) -> Result<Self, Error> {
-        let id = id.into();
-        let input_id = input_id.into();
-        if id.bytes().all(|b| b.is_ascii_lowercase())
-            && input_id.bytes().all(|b| b.is_ascii_lowercase())
-        {
-            Ok(Self {
-                id,
-                input: WireInput::Wire(input_id),
-                signal: None,
-            })
-        } else {
-            Err(Error::InvalidWireId(id))
-        }
+        let id = WireId::try_from(id.into())?;
+        let input_id = WireId::try_from(input_id.into())?;
+        Ok(Self {
+            id,
+            input: WireInput::Wire(input_id),
+            signal: None,
+        })
     }
 
     pub fn from_gate<S: Into<String>>(id: S, gate: Gate) -> Result<Self, Error> {
-        let id = id.into();
-        if id.bytes().all(|b| b.is_ascii_lowercase()) {
-            Ok(Self {
-                id,
-                input: WireInput::Gate(gate),
-                signal: None,
-            })
-        } else {
-            Err(Error::InvalidWireId(id))
-        }
+        let id = WireId::try_from(id.into())?;
+        Ok(Self {
+            id,
+            input: WireInput::Gate(gate),
+            signal: None,
+        })
     }
 
     pub fn from_gate_and<S: Into<String>, T: Into<String>, U: Into<String>>(
@@ -156,6 +141,10 @@ impl Wire {
     // pub fn set_signal(&mut self, value: u16) {
     //     self.signal = Some(value);
     // }
+
+    // fn get_signal(&self) -> Option<u16> {
+    //     self.signal
+    // }
 }
 
 // impl PartialEq for Wire {
@@ -188,17 +177,16 @@ impl TryFrom<&str> for Wire {
             .split_once(" -> ")
             .ok_or(Error::ParseArrow(s.to_string()))?;
         let inputs: Vec<&str> = input.split(' ').collect();
-        let wire_input = match inputs.len() {
+        match inputs.len() {
             1 => {
                 if let Ok(value) = inputs[0].parse::<u16>() {
-                    WireInput::Value(value)
+                    Wire::with_value(output, value)
                 } else {
-                    WireInput::Wire(inputs[0].to_string())
+                    Wire::from_wire(output, inputs[0])
                 }
             }
-            _ => WireInput::Gate(Gate::try_from(input)?),
-        };
-        Wire::new(output, wire_input)
+            _ => Wire::from_gate(output, Gate::try_from(input)?),
+        }
     }
 }
 
@@ -208,8 +196,11 @@ mod tests {
 
     #[test]
     fn wire_id() {
+        assert!(Wire::from_wire("", "w").is_err());
+        assert!(Wire::from_wire("w", "").is_err());
         assert!(Wire::with_value("A", 3).is_err());
-        assert!(Wire::from_wire("1", "2").is_err());
+        assert!(Wire::from_wire("a", "2").is_err());
+        assert!(Wire::with_value("2", 2).is_err());
         assert!(Wire::with_value("nano corp", 9).is_err());
         assert!(Wire::with_value("nanocorp", 9).is_ok());
         assert!(Wire::from_wire("nano", "corp").is_ok());

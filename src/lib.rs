@@ -10,3 +10,4 @@ pub mod circuit_builder;
 pub mod error;
 // pub mod signal;
 pub mod wire;
+pub mod wire_id;

@@ -3,7 +3,8 @@ use std::{collections, mem};
 use crate::{
     circuit::Circuit,
     gate::Gate,
-    wire::{Wire, WireId, WireInput},
+    wire::{Wire, WireInput},
+    wire_id::WireId,
 };
 
 pub struct CircuitBuilder {
@@ -164,14 +165,14 @@ mod tests {
 
         circuit.compute_signals();
 
-        assert_eq!(circuit.get_signal("d"), Some(72));
-        assert_eq!(circuit.get_signal("e"), Some(507));
-        assert_eq!(circuit.get_signal("f"), Some(492));
-        assert_eq!(circuit.get_signal("g"), Some(114));
-        assert_eq!(circuit.get_signal("h"), Some(65412));
-        assert_eq!(circuit.get_signal("i"), Some(65079));
-        assert_eq!(circuit.get_signal("x"), Some(123));
-        assert_eq!(circuit.get_signal("y"), Some(456));
+        assert!(matches!(circuit.signal("d"), Ok(Some(72))));
+        assert!(matches!(circuit.signal("e"), Ok(Some(507))));
+        assert!(matches!(circuit.signal("f"), Ok(Some(492))));
+        assert!(matches!(circuit.signal("g"), Ok(Some(114))));
+        assert!(matches!(circuit.signal("h"), Ok(Some(65412))));
+        assert!(matches!(circuit.signal("i"), Ok(Some(65079))));
+        assert!(matches!(circuit.signal("x"), Ok(Some(123))));
+        assert!(matches!(circuit.signal("y"), Ok(Some(456))));
     }
 
     #[test]
@@ -189,14 +190,14 @@ mod tests {
 
         circuit.compute_signals();
 
-        assert_eq!(circuit.get_signal("d"), Some(72));
-        assert_eq!(circuit.get_signal("e"), Some(507));
-        assert_eq!(circuit.get_signal("f"), Some(492));
-        assert_eq!(circuit.get_signal("g"), Some(114));
-        assert_eq!(circuit.get_signal("h"), Some(65412));
-        assert_eq!(circuit.get_signal("i"), Some(65079));
-        assert_eq!(circuit.get_signal("x"), Some(123));
-        assert_eq!(circuit.get_signal("y"), Some(456));
+        assert!(matches!(circuit.signal("d"), Ok(Some(72))));
+        assert!(matches!(circuit.signal("e"), Ok(Some(507))));
+        assert!(matches!(circuit.signal("f"), Ok(Some(492))));
+        assert!(matches!(circuit.signal("g"), Ok(Some(114))));
+        assert!(matches!(circuit.signal("h"), Ok(Some(65412))));
+        assert!(matches!(circuit.signal("i"), Ok(Some(65079))));
+        assert!(matches!(circuit.signal("x"), Ok(Some(123))));
+        assert!(matches!(circuit.signal("y"), Ok(Some(456))));
     }
 
     #[test]
@@ -211,6 +212,6 @@ mod tests {
             .build();
 
         circuit.compute_signals();
-        assert_eq!(circuit.get_signal("xor"), Some(0xaa03));
+        assert!(matches!(circuit.signal("xor"), Ok(Some(0xaa03))));
     }
 }

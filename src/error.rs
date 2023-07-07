@@ -2,12 +2,12 @@ use std::{io, num};
 
 use thiserror;
 
-use crate::wire::WireId;
+use crate::wire_id::WireId;
 
 #[derive(thiserror::Error, Debug)]
 pub enum Error {
     #[error("Wire id '{0}' is not ascii lowercase")]
-    InvalidWireId(WireId),
+    InvalidWireId(String),
 
     #[error("Shift amount '{0}' exceeds 15")]
     TooLargeShift(u8),
@@ -23,6 +23,9 @@ pub enum Error {
 
     #[error("Circuit already has a wire whose id is '{0}'")]
     WireIdAlreadyExists(WireId),
+
+    #[error("Circuit has no wire '{0}'")]
+    UnknownWire(WireId),
 
     #[error(transparent)]
     InvalidPath(#[from] io::Error),
