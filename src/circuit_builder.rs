@@ -7,6 +7,7 @@ use crate::{
     wire_id::WireId,
 };
 
+#[derive(Default)]
 pub struct CircuitBuilder {
     wires: collections::HashMap<WireId, Wire>,
 }
@@ -163,7 +164,7 @@ mod tests {
             .add_gate_not("i", "y")
             .build();
 
-        circuit.compute_signals();
+        assert!(circuit.compute_signals().is_ok());
 
         assert!(matches!(circuit.get_signal_from("d"), Ok(Some(72))));
         assert!(matches!(circuit.get_signal_from("e"), Ok(Some(507))));
@@ -188,7 +189,7 @@ mod tests {
         builder.add_gate_not("i", "y");
         let mut circuit = builder.build();
 
-        circuit.compute_signals();
+        assert!(circuit.compute_signals().is_ok());
 
         assert!(matches!(circuit.get_signal_from("d"), Ok(Some(72))));
         assert!(matches!(circuit.get_signal_from("e"), Ok(Some(507))));
@@ -211,7 +212,7 @@ mod tests {
             .add_gate_and("xor", "xoy", "nxay")
             .build();
 
-        circuit.compute_signals();
+        assert!(circuit.compute_signals().is_ok());
         assert!(matches!(circuit.get_signal_from("xor"), Ok(Some(0xaa03))));
     }
 }

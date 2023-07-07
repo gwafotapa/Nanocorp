@@ -1,7 +1,8 @@
 use std::{
-    collections::HashMap,
+    collections::{HashMap, HashSet},
     fmt,
     fs::{self, File},
+    hash::Hash,
     io::{self, Write},
     path::Path,
 };
@@ -14,7 +15,7 @@ use crate::{
 };
 
 // TODO: check for types implementing clone, copy, ...
-#[derive(Debug, PartialEq)]
+#[derive(Debug, Default, PartialEq)]
 pub struct Circuit {
     pub wires: HashMap<WireId, Wire>,
 }
@@ -143,13 +144,25 @@ impl Circuit {
         self.add(wire)
     }
 
+    // TODO: define type Signal = Option<u16>
     // TODO: rework
-    // TODO: check for loops
-    // TODO: add result return type
-    pub fn compute_signals(&mut self) -> bool {
+    pub fn compute_signals(&mut self) -> Result<(), Error> {
         let mut ids: Vec<WireId> = self.wires.keys().map(|id| id.to_owned()).collect();
+        let mut loop_index: Option<usize> = None; // index into vector ids for loop detection
         while let Some(id) = ids.last() {
             if let Some(wire) = self.wires.get(id) {
+                // TODO: Need reset_signals() in case we add wire after compute_signals
+                if wire.signal.is_some() {
+                    ids.pop();
+                    continue;
+                }
+                if let Some(index) = loop_index {
+                    if has_duplicate_elements(&ids[index..]) {
+                        return Err(Error::CircuitLoop);
+                    }
+                } else {
+                    loop_index = Some(ids.len() - 1);
+                }
                 match &wire.input {
                     WireInput::Value(value) => {
                         self.set_signal_of(id, Some(*value));
@@ -164,7 +177,7 @@ impl Circuit {
                                 ids.push(input_id.to_owned());
                             }
                         } else {
-                            // Unknown wire
+                            // Unknown wire id
                             ids.pop();
                         }
                     }
@@ -182,9 +195,9 @@ impl Circuit {
                                     }
                                 } else {
                                     ids.push(input1.to_owned());
-                                    if wire2.signal.is_none() {
-                                        ids.push(input2.to_owned());
-                                    }
+                                    // if wire2.signal.is_none() {
+                                    //     ids.push(input2.to_owned());
+                                    // }
                                 }
                             } else {
                                 ids.pop();
@@ -215,9 +228,9 @@ impl Circuit {
                                     }
                                 } else {
                                     ids.push(input1.to_owned());
-                                    if wire2.signal.is_none() {
-                                        ids.push(input2.to_owned());
-                                    }
+                                    // if wire2.signal.is_none() {
+                                    //     ids.push(input2.to_owned());
+                                    // }
                                 }
                             } else {
                                 ids.pop();
@@ -277,9 +290,11 @@ impl Circuit {
                 // Unkwown wire id
                 ids.pop();
             }
+            if loop_index.unwrap() >= ids.len() {
+                loop_index = None
+            }
         }
-
-        true
+        Ok(())
     }
 
     fn get_wire(&self, id: &WireId) -> Result<&Wire, Error> {
@@ -297,7 +312,7 @@ impl Circuit {
         self.get_wire(id).map(|w| w.signal)
     }
 
-    fn signal_of(&self, id: &WireId) -> Option<u16> {
+    pub fn signal_of(&self, id: &WireId) -> Option<u16> {
         self.get_signal_of(id).unwrap()
     }
 
@@ -336,10 +351,16 @@ impl Circuit {
     }
 }
 
+// impl Default for Circuit {
+//     fn default() -> Self {
+//         Self::new()
+//     }
+// }
+
 impl fmt::Display for Circuit {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         for wire in self.wires.values() {
-            write!(f, "{}\n", wire)?
+            writeln!(f, "{}", wire)?
         }
         Ok(())
     }
@@ -355,6 +376,16 @@ impl TryFrom<&str> for Circuit {
         }
         Ok(circuit)
     }
+}
+
+// https://stackoverflow.com/questions/46766560/how-to-check-if-there-are-duplicates-in-a-slice
+fn has_duplicate_elements<T>(iter: T) -> bool
+where
+    T: IntoIterator,
+    T::Item: Eq + Hash,
+{
+    let mut uniq = HashSet::new();
+    iter.into_iter().any(move |x| !uniq.insert(x))
 }
 
 #[cfg(test)]
@@ -380,7 +411,7 @@ mod tests {
         assert!(matches!(circuit.get_signal_from("a"), Ok(None)));
         assert!(matches!(circuit.get_signal_from("b"), Ok(None)));
 
-        circuit.compute_signals();
+        assert!(circuit.compute_signals().is_ok());
         assert!(matches!(circuit.get_signal_from("a"), Ok(Some(1))));
         assert!(matches!(circuit.get_signal_from("b"), Ok(Some(1))));
 
@@ -389,7 +420,7 @@ mod tests {
         circuit.add(c).unwrap();
         assert!(matches!(circuit.get_signal_from("c"), Ok(None)));
 
-        circuit.compute_signals();
+        assert!(circuit.compute_signals().is_ok());
         assert!(matches!(circuit.get_signal_from("c"), Ok(Some(0xfffe))));
         println!("{}", circuit);
     }
@@ -421,7 +452,7 @@ mod tests {
         circuit.add(h)?;
         circuit.add(i)?;
 
-        circuit.compute_signals();
+        assert!(circuit.compute_signals().is_ok());
 
         assert!(matches!(circuit.get_signal_from("d"), Ok(Some(72))));
         assert!(matches!(circuit.get_signal_from("e"), Ok(Some(507))));
@@ -445,7 +476,7 @@ mod tests {
         circuit.add_gate_slr("g", "y", 2)?;
         circuit.add_gate_not("h", "x")?;
         circuit.add_gate_not("i", "y")?;
-        circuit.compute_signals();
+        assert!(circuit.compute_signals().is_ok());
 
         println!("{}", circuit);
 
@@ -520,7 +551,7 @@ mod tests {
         c.add_gate_not("nxoy", "xoy").unwrap();
         c.add_gate_not("w", "unknown").unwrap();
 
-        c.compute_signals();
+        assert!(c.compute_signals().is_ok());
 
         assert_eq!(c.signal_from("x"), Some(0xfff0));
         assert_eq!(c.signal_from("y"), Some(0x0fff));
@@ -544,10 +575,30 @@ mod tests {
         c.add_gate_or("xox", "x", "x").unwrap();
         c.add_gate_and("xax", "x", "x").unwrap();
 
-        c.compute_signals();
+        assert!(c.compute_signals().is_ok());
 
         assert_eq!(c.signal_from("x"), Some(x));
         assert_eq!(c.signal_from("xox"), Some(x));
         assert_eq!(c.signal_from("xax"), Some(x));
+    }
+
+    #[test]
+    fn loop_2_wires() {
+        let mut c = Circuit::new();
+        c.add_wire_from_wire("a", "b").unwrap();
+        c.add_wire_from_wire("b", "a").unwrap();
+        assert!(c.compute_signals().is_err());
+    }
+
+    #[test]
+    fn loop_3_wires() {
+        let mut c = Circuit::new();
+        c.add_wire_from_wire("a", "b").unwrap();
+        c.add_gate_and("b", "c", "d").unwrap();
+        c.add_gate_or("c", "e", "f").unwrap();
+        c.add_gate_not("f", "b").unwrap();
+        c.add_wire_with_value("d", 19).unwrap();
+        c.add_wire_with_value("e", 7).unwrap();
+        assert!(c.compute_signals().is_err());
     }
 }

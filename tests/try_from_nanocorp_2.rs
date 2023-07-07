@@ -343,7 +343,7 @@ fn try_from_nanocorp_example_2() -> Result<(), Error> {
 		 he RSHIFT 5 -> hh";
 
     let mut c = Circuit::try_from(s)?;
-    c.compute_signals();
+    assert!(c.compute_signals().is_ok());
     // println!("{}", c);
     Ok(())
 }

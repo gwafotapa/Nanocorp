@@ -32,4 +32,7 @@ pub enum Error {
 
     #[error(transparent)]
     InvalidPath(#[from] io::Error),
+
+    #[error("Circuit has a loop")]
+    CircuitLoop,
 }
