@@ -1,9 +1,9 @@
 use std::{
-    collections::{HashMap, HashSet},
+    collections::HashMap,
     fmt,
     fs::{self, File},
-    hash::Hash,
     io::{self, Write},
+    mem,
     path::Path,
 };
 
@@ -16,28 +16,35 @@ use crate::{
 };
 
 // TODO: check for types implementing clone, copy, ...
-#[derive(Debug, Default, PartialEq)]
+#[derive(Debug, Default)]
 pub struct Circuit {
     pub wires: HashMap<WireId, Wire>,
+    uncomputed: Vec<WireId>,
+    uncomputable: Vec<WireId>,
 }
 
 impl Circuit {
     //
     pub fn new() -> Self {
-        Self {
-            wires: HashMap::new(),
-        }
+        // Self {
+        //     wires: HashMap::new(),
+        //     uncomputed: vec![],
+        //     uncomputable: vec![],
+        // }
+        Self::default()
     }
 
-    pub fn remove(&mut self, id: &WireId) {
-        self.wires.remove(id);
-    }
+    // TODO: update uncomputed and uncomputable
+    // pub fn remove(&mut self, id: &WireId) {
+    //     self.wires.remove(id);
+    // }
 
     pub fn add(&mut self, wire: Wire) -> Result<(), Error> {
         if self.wires.contains_key(&wire.id) {
             Err(Error::WireIdAlreadyExists(wire.id))
         } else {
-            self.wires.insert(wire.id.to_owned(), wire);
+            self.uncomputed.push(wire.id.clone());
+            self.wires.insert(wire.id.clone(), wire);
             Ok(())
         }
     }
@@ -146,11 +153,37 @@ impl Circuit {
         self.add(wire)
     }
 
+    pub fn compute_signals(&mut self) -> Result<(), Error> {
+        let mut to_be_computed = mem::take(&mut self.uncomputable);
+        for id in &mut to_be_computed {
+            self.set_signal_of(id, Signal::Uncomputed);
+        }
+        to_be_computed.append(&mut self.uncomputed);
+        self.compute_signals_of(to_be_computed)?;
+        self.uncomputable.sort();
+        self.uncomputable.dedup();
+        Ok(())
+    }
+
+    // Helper function of compute_signals_of()
+    fn set_uncomputable_from_index(
+        &mut self,
+        mut ids: Vec<WireId>,
+        root_index: usize,
+    ) -> Vec<WireId> {
+        for id in &ids[root_index..] {
+            self.set_signal_of(id, Signal::Uncomputable);
+            self.uncomputable.push(id.to_owned());
+        }
+        ids.truncate(root_index);
+        ids
+    }
+
     // TODO: define type Signal = Option<u16>
     // TODO: rework
     // TODO: Need reset_signals() in case we add wire after compute_signals
-    pub fn compute_signals(&mut self) -> Result<(), Error> {
-        let mut ids: Vec<WireId> = self.wires.keys().map(|id| id.to_owned()).collect();
+    pub fn compute_signals_of(&mut self, mut ids: Vec<WireId>) -> Result<(), Error> {
+        // let mut ids: Vec<WireId> = self.wires.keys().map(|id| id.to_owned()).collect();
         // Index of id the computation originated from
         let mut root_index = if ids.len() > 0 { ids.len() - 1 } else { 0 };
         while let Some(id) = ids.last() {
@@ -163,10 +196,7 @@ impl Circuit {
                         ids.pop();
                     }
                     Signal::Uncomputable => {
-                        for id in &ids[root_index..] {
-                            self.set_signal_of(id, Signal::Uncomputable);
-                        }
-                        ids.truncate(root_index);
+                        ids = self.set_uncomputable_from_index(ids, root_index);
                     }
                     Signal::Uncomputed => {
                         match &wire.input {
@@ -182,10 +212,7 @@ impl Circuit {
                                             ids.pop();
                                         }
                                         Signal::Uncomputable => {
-                                            for id in &ids[root_index..] {
-                                                self.set_signal_of(id, Signal::Uncomputable);
-                                            }
-                                            ids.truncate(root_index);
+                                            ids = self.set_uncomputable_from_index(ids, root_index);
                                         }
                                         Signal::Uncomputed => {
                                             if ids[root_index..].contains(input_id) {
@@ -196,10 +223,7 @@ impl Circuit {
                                     }
                                 } else {
                                     // Unknown wire id
-                                    for id in &ids[root_index..] {
-                                        self.set_signal_of(id, Signal::Uncomputable);
-                                    }
-                                    ids.truncate(root_index);
+                                    ids = self.set_uncomputable_from_index(ids, root_index);
                                 }
                             }
                             WireInput::Gate(gate) => match gate {
@@ -217,10 +241,8 @@ impl Circuit {
                                             }
                                             (Signal::Uncomputable, _)
                                             | (_, Signal::Uncomputable) => {
-                                                for id in &ids[root_index..] {
-                                                    self.set_signal_of(id, Signal::Uncomputable);
-                                                }
-                                                ids.truncate(root_index);
+                                                ids = self
+                                                    .set_uncomputable_from_index(ids, root_index);
                                             }
                                             (Signal::Uncomputed, _) => {
                                                 if ids[root_index..].contains(input1) {
@@ -236,10 +258,7 @@ impl Circuit {
                                             }
                                         }
                                     } else {
-                                        for id in &ids[root_index..] {
-                                            self.set_signal_of(id, Signal::Uncomputable);
-                                        }
-                                        ids.truncate(root_index);
+                                        ids = self.set_uncomputable_from_index(ids, root_index);
                                     }
                                 }
                                 Gate::AndValue { input, .. }
@@ -257,10 +276,8 @@ impl Circuit {
                                                 ids.pop();
                                             }
                                             Signal::Uncomputable => {
-                                                for id in &ids[root_index..] {
-                                                    self.set_signal_of(id, Signal::Uncomputable);
-                                                }
-                                                ids.truncate(root_index);
+                                                ids = self
+                                                    .set_uncomputable_from_index(ids, root_index);
                                             }
                                             Signal::Uncomputed => {
                                                 if ids[root_index..].contains(input) {
@@ -270,10 +287,7 @@ impl Circuit {
                                             }
                                         }
                                     } else {
-                                        for id in &ids[root_index..] {
-                                            self.set_signal_of(id, Signal::Uncomputable);
-                                        }
-                                        ids.truncate(root_index);
+                                        ids = self.set_uncomputable_from_index(ids, root_index);
                                     }
                                 }
                             },
@@ -282,10 +296,7 @@ impl Circuit {
                 }
             } else {
                 // Unkwown wire id
-                for id in &ids[root_index..] {
-                    self.set_signal_of(id, Signal::Uncomputable);
-                }
-                ids.truncate(root_index);
+                ids = self.set_uncomputable_from_index(ids, root_index);
             }
         }
         Ok(())
@@ -369,6 +380,13 @@ impl TryFrom<&str> for Circuit {
             circuit.add(wire.try_into()?)?
         }
         Ok(circuit)
+    }
+}
+
+// TODO: Is this reasonable ?
+impl PartialEq for Circuit {
+    fn eq(&self, other: &Self) -> bool {
+        self.wires == other.wires
     }
 }
 
@@ -674,6 +692,7 @@ mod tests {
         assert_eq!(c.signal_from("y"), Signal::Uncomputable);
         assert_eq!(c.signal_from("z"), Signal::Uncomputable);
         assert_eq!(c.signal_from("nz"), Signal::Uncomputable);
+        assert_eq!(c.uncomputable.len(), 6);
 
         c.add_wire_with_value("a", 0x1).unwrap();
         c.add_wire_with_value("d", 0x1000).unwrap();

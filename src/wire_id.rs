@@ -2,7 +2,7 @@ use std::{fmt, ops};
 
 use crate::error::Error;
 
-#[derive(Clone, Debug, Eq, Hash, PartialEq)]
+#[derive(Clone, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
 pub struct WireId(String);
 
 // impl WireId {
@@ -66,6 +66,12 @@ impl fmt::Display for WireId {
         write!(f, "{}", self.0)
     }
 }
+
+// impl Ord for WireId {
+//     fn cmp(&self, other: &Self) -> std::cmp::Ordering {
+//         cmp(self.0, other.0)
+//     }
+// }
 
 #[cfg(test)]
 mod tests {
