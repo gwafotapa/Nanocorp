@@ -1,13 +1,7 @@
 pub mod circuit;
-pub mod gate;
-// pub mod gate_and;
-// pub mod gate_lshift;
-// pub mod gate_not;
-// pub mod gate_or;
-// pub mod gate_rshift;
-pub mod circuit_builder;
-// pub mod component;
+// pub mod circuit_builder;
 pub mod error;
-// pub mod signal;
+pub mod gate;
+pub mod signal;
 pub mod wire;
 pub mod wire_id;

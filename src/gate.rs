@@ -71,6 +71,15 @@ impl Gate {
             Gate::Not { input } => id == input,
         }
     }
+
+    // TODO: ? Add nested types to enum Gate to implement a signal function for each gate variant
+    // pub fn and_signal(signal1: Option<u16>, signal2: Option<u16>) -> Option<u16> {
+    //     if let (Some(signal1), Some(signal2)) = (signal1, signal2) {
+    //         Some(signal1 & signal2)
+    //     } else {
+    //         None
+    //     }
+    // }
 }
 
 impl fmt::Display for Gate {

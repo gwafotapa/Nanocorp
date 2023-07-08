@@ -1,6 +1,6 @@
 use std::{fmt, ops::Deref}; // use crate::signal::Signal;
 
-use crate::{error::Error, gate::Gate, wire_id::WireId};
+use crate::{error::Error, gate::Gate, signal::Signal, wire_id::WireId};
 
 #[derive(Debug, PartialEq)]
 pub enum WireInput {
@@ -13,7 +13,7 @@ pub enum WireInput {
 pub struct Wire {
     pub id: WireId,
     pub input: WireInput,
-    pub signal: Option<u16>, // TODO: should be private ?
+    pub signal: Signal, // TODO: should be private ?
 }
 
 impl Wire {
@@ -22,7 +22,7 @@ impl Wire {
     //     id.bytes().all(|b| b.is_ascii_lowercase()).then_some(Self {
     //         id,
     //         input: None,
-    //         signal: None,
+    //         signal: Uncomputed,
     //     })
     // }
 
@@ -41,7 +41,7 @@ impl Wire {
         Ok(Self {
             id,
             input: WireInput::Value(value),
-            signal: None,
+            signal: Signal::Uncomputed,
         })
     }
 
@@ -54,7 +54,7 @@ impl Wire {
         Ok(Self {
             id,
             input: WireInput::Wire(input_id),
-            signal: None,
+            signal: Signal::Uncomputed,
         })
     }
 
@@ -66,7 +66,7 @@ impl Wire {
         Ok(Self {
             id,
             input: WireInput::Gate(gate),
-            signal: None,
+            signal: Signal::Uncomputed,
         })
     }
 
@@ -130,7 +130,7 @@ impl Wire {
         Wire::from_gate(id, gate)
     }
 
-    // pub fn compute_signal(&self) -> Option<u16> {
+    // pub fn compute_signal(&self) -> Signal {
     //     if let Some(input) = self.input {
     //         match input {
     //             WireInput::Value(value) => Some(value),
@@ -148,7 +148,7 @@ impl Wire {
     //     self.signal = Some(value);
     // }
 
-    // fn get_signal(&self) -> Option<u16> {
+    // fn get_signal(&self) -> Signal {
     //     self.signal
     // }
 }
