@@ -1,6 +1,6 @@
 use std::fmt;
 
-use crate::{error::Error, wire_id::WireId};
+use crate::{error::Error, signal::Signal, wire_id::WireId};
 
 // TODO: derive Eq, Hash, Clone ?
 #[derive(Debug, PartialEq)]
@@ -73,13 +73,17 @@ impl Gate {
     }
 
     // TODO: ? Add nested types to enum Gate to implement a signal function for each gate variant
-    // pub fn and_signal(signal1: Option<u16>, signal2: Option<u16>) -> Option<u16> {
-    //     if let (Some(signal1), Some(signal2)) = (signal1, signal2) {
-    //         Some(signal1 & signal2)
-    //     } else {
-    //         None
-    //     }
-    // }
+    pub fn signal(&self, input1: Option<u16>, input2: Option<u16>) -> Signal {
+        match self {
+            Gate::And { .. } => Signal::Value(input1.unwrap() & input2.unwrap()),
+            Gate::Or { .. } => Signal::Value(input1.unwrap() | input2.unwrap()),
+            Gate::AndValue { value, .. } => Signal::Value(input1.unwrap() & value),
+            Gate::OrValue { value, .. } => Signal::Value(input1.unwrap() | value),
+            Gate::SLL { shift, .. } => Signal::Value(input1.unwrap() << shift),
+            Gate::SLR { shift, .. } => Signal::Value(input1.unwrap() >> shift),
+            Gate::Not { .. } => Signal::Value(!input1.unwrap()),
+        }
+    }
 }
 
 impl fmt::Display for Gate {

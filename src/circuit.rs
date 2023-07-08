@@ -152,10 +152,10 @@ impl Circuit {
     pub fn compute_signals(&mut self) -> Result<(), Error> {
         let mut ids: Vec<WireId> = self.wires.keys().map(|id| id.to_owned()).collect();
         // Index of id the computation originated from
-        let mut root_index: Option<usize> = None;
+        let mut root_index = if ids.len() > 0 { ids.len() - 1 } else { 0 };
         while let Some(id) = ids.last() {
-            if root_index.is_none() {
-                root_index = Some(ids.len() - 1);
+            if root_index > ids.len() - 1 {
+                root_index = ids.len() - 1;
             }
             if let Some(wire) = self.wires.get(id) {
                 match wire.signal {
@@ -163,10 +163,10 @@ impl Circuit {
                         ids.pop();
                     }
                     Signal::Uncomputable => {
-                        for id in &ids[root_index.unwrap()..] {
+                        for id in &ids[root_index..] {
                             self.set_signal_of(id, Signal::Uncomputable);
                         }
-                        ids.truncate(root_index.unwrap());
+                        ids.truncate(root_index);
                     }
                     Signal::Uncomputed => {
                         match &wire.input {
@@ -182,14 +182,13 @@ impl Circuit {
                                             ids.pop();
                                         }
                                         Signal::Uncomputable => {
-                                            self.set_signal_of(id, Signal::Uncomputable);
-                                            for id in &ids[root_index.unwrap()..] {
+                                            for id in &ids[root_index..] {
                                                 self.set_signal_of(id, Signal::Uncomputable);
                                             }
-                                            ids.truncate(root_index.unwrap());
+                                            ids.truncate(root_index);
                                         }
                                         Signal::Uncomputed => {
-                                            if ids[root_index.unwrap()..].contains(input_id) {
+                                            if ids[root_index..].contains(input_id) {
                                                 return Err(Error::CircuitLoop);
                                             }
                                             ids.push(input_id.to_owned());
@@ -197,14 +196,14 @@ impl Circuit {
                                     }
                                 } else {
                                     // Unknown wire id
-                                    for id in &ids[root_index.unwrap()..] {
+                                    for id in &ids[root_index..] {
                                         self.set_signal_of(id, Signal::Uncomputable);
                                     }
-                                    ids.truncate(root_index.unwrap());
+                                    ids.truncate(root_index);
                                 }
                             }
                             WireInput::Gate(gate) => match gate {
-                                Gate::And { input1, input2 } => {
+                                Gate::And { input1, input2 } | Gate::Or { input1, input2 } => {
                                     if let (Ok(wire1), Ok(wire2)) =
                                         (self.get_wire(input1), self.get_wire(input2))
                                     {
@@ -212,223 +211,69 @@ impl Circuit {
                                             (Signal::Value(signal1), Signal::Value(signal2)) => {
                                                 self.set_signal_of(
                                                     id,
-                                                    Signal::Value(signal1 & signal2),
+                                                    gate.signal(Some(signal1), Some(signal2)),
                                                 );
                                                 ids.pop();
                                             }
                                             (Signal::Uncomputable, _)
                                             | (_, Signal::Uncomputable) => {
-                                                // self.set_signal_of(id, Signal::Uncomputable);
-                                                for id in &ids[root_index.unwrap()..] {
+                                                for id in &ids[root_index..] {
                                                     self.set_signal_of(id, Signal::Uncomputable);
                                                 }
-                                                ids.truncate(root_index.unwrap());
+                                                ids.truncate(root_index);
                                             }
                                             (Signal::Uncomputed, _) => {
-                                                if ids[root_index.unwrap()..].contains(input1) {
+                                                if ids[root_index..].contains(input1) {
                                                     return Err(Error::CircuitLoop);
                                                 }
                                                 ids.push(input1.to_owned());
                                             }
                                             (_, Signal::Uncomputed) => {
-                                                if ids[root_index.unwrap()..].contains(input2) {
+                                                if ids[root_index..].contains(input2) {
                                                     return Err(Error::CircuitLoop);
                                                 }
                                                 ids.push(input2.to_owned());
                                             }
                                         }
                                     } else {
-                                        for id in &ids[root_index.unwrap()..] {
+                                        for id in &ids[root_index..] {
                                             self.set_signal_of(id, Signal::Uncomputable);
                                         }
-                                        ids.truncate(root_index.unwrap());
+                                        ids.truncate(root_index);
                                     }
                                 }
-                                Gate::AndValue { input, value } => {
+                                Gate::AndValue { input, .. }
+                                | Gate::OrValue { input, .. }
+                                | Gate::SLL { input, .. }
+                                | Gate::SLR { input, .. }
+                                | Gate::Not { input } => {
                                     if let Ok(input_wire) = self.get_wire(input) {
                                         match input_wire.signal {
                                             Signal::Value(signal) => {
                                                 self.set_signal_of(
                                                     id,
-                                                    Signal::Value(signal & value),
+                                                    gate.signal(Some(signal), None),
                                                 );
                                                 ids.pop();
                                             }
                                             Signal::Uncomputable => {
-                                                for id in &ids[root_index.unwrap()..] {
+                                                for id in &ids[root_index..] {
                                                     self.set_signal_of(id, Signal::Uncomputable);
                                                 }
-                                                ids.truncate(root_index.unwrap());
+                                                ids.truncate(root_index);
                                             }
                                             Signal::Uncomputed => {
-                                                if ids[root_index.unwrap()..].contains(input) {
+                                                if ids[root_index..].contains(input) {
                                                     return Err(Error::CircuitLoop);
                                                 }
                                                 ids.push(input.to_owned());
                                             }
                                         }
                                     } else {
-                                        for id in &ids[root_index.unwrap()..] {
+                                        for id in &ids[root_index..] {
                                             self.set_signal_of(id, Signal::Uncomputable);
                                         }
-                                        ids.truncate(root_index.unwrap());
-                                    }
-                                }
-                                Gate::Or { input1, input2 } => {
-                                    if let (Ok(wire1), Ok(wire2)) =
-                                        (self.get_wire(input1), self.get_wire(input2))
-                                    {
-                                        match (wire1.signal, wire2.signal) {
-                                            (Signal::Value(signal1), Signal::Value(signal2)) => {
-                                                self.set_signal_of(
-                                                    id,
-                                                    Signal::Value(signal1 | signal2),
-                                                );
-                                                ids.pop();
-                                            }
-                                            (Signal::Uncomputable, _)
-                                            | (_, Signal::Uncomputable) => {
-                                                // self.set_signal_of(id, Signal::Uncomputable);
-                                                for id in &ids[root_index.unwrap()..] {
-                                                    self.set_signal_of(id, Signal::Uncomputable);
-                                                }
-                                                ids.truncate(root_index.unwrap());
-                                            }
-                                            (Signal::Uncomputed, _) => {
-                                                if ids[root_index.unwrap()..].contains(input1) {
-                                                    return Err(Error::CircuitLoop);
-                                                }
-                                                ids.push(input1.to_owned());
-                                            }
-                                            (_, Signal::Uncomputed) => {
-                                                if ids[root_index.unwrap()..].contains(input2) {
-                                                    return Err(Error::CircuitLoop);
-                                                }
-                                                ids.push(input2.to_owned());
-                                            }
-                                        }
-                                    } else {
-                                        for id in &ids[root_index.unwrap()..] {
-                                            self.set_signal_of(id, Signal::Uncomputable);
-                                        }
-                                        ids.truncate(root_index.unwrap());
-                                    }
-                                }
-                                Gate::OrValue { input, value } => {
-                                    if let Ok(input_wire) = self.get_wire(input) {
-                                        match input_wire.signal {
-                                            Signal::Value(signal) => {
-                                                self.set_signal_of(
-                                                    id,
-                                                    Signal::Value(signal | value),
-                                                );
-                                                ids.pop();
-                                            }
-                                            Signal::Uncomputable => {
-                                                for id in &ids[root_index.unwrap()..] {
-                                                    self.set_signal_of(id, Signal::Uncomputable);
-                                                }
-                                                ids.truncate(root_index.unwrap());
-                                            }
-                                            Signal::Uncomputed => {
-                                                if ids[root_index.unwrap()..].contains(input) {
-                                                    return Err(Error::CircuitLoop);
-                                                }
-                                                ids.push(input.to_owned());
-                                            }
-                                        }
-                                    } else {
-                                        for id in &ids[root_index.unwrap()..] {
-                                            self.set_signal_of(id, Signal::Uncomputable);
-                                        }
-                                        ids.truncate(root_index.unwrap());
-                                    }
-                                }
-                                Gate::SLL { input, shift } => {
-                                    if let Ok(input_wire) = self.get_wire(input) {
-                                        match input_wire.signal {
-                                            Signal::Value(signal) => {
-                                                self.set_signal_of(
-                                                    id,
-                                                    Signal::Value(signal << shift),
-                                                );
-                                                ids.pop();
-                                            }
-                                            Signal::Uncomputable => {
-                                                for id in &ids[root_index.unwrap()..] {
-                                                    self.set_signal_of(id, Signal::Uncomputable);
-                                                }
-                                                ids.truncate(root_index.unwrap());
-                                            }
-                                            Signal::Uncomputed => {
-                                                if ids[root_index.unwrap()..].contains(input) {
-                                                    return Err(Error::CircuitLoop);
-                                                }
-                                                ids.push(input.to_owned());
-                                            }
-                                        }
-                                    } else {
-                                        for id in &ids[root_index.unwrap()..] {
-                                            self.set_signal_of(id, Signal::Uncomputable);
-                                        }
-                                        ids.truncate(root_index.unwrap());
-                                    }
-                                }
-                                Gate::SLR { input, shift } => {
-                                    if let Ok(input_wire) = self.get_wire(input) {
-                                        match input_wire.signal {
-                                            Signal::Value(signal) => {
-                                                self.set_signal_of(
-                                                    id,
-                                                    Signal::Value(signal >> shift),
-                                                );
-                                                ids.pop();
-                                            }
-                                            Signal::Uncomputable => {
-                                                for id in &ids[root_index.unwrap()..] {
-                                                    self.set_signal_of(id, Signal::Uncomputable);
-                                                }
-                                                ids.truncate(root_index.unwrap());
-                                            }
-                                            Signal::Uncomputed => {
-                                                if ids[root_index.unwrap()..].contains(input) {
-                                                    return Err(Error::CircuitLoop);
-                                                }
-                                                ids.push(input.to_owned());
-                                            }
-                                        }
-                                    } else {
-                                        for id in &ids[root_index.unwrap()..] {
-                                            self.set_signal_of(id, Signal::Uncomputable);
-                                        }
-                                        ids.truncate(root_index.unwrap());
-                                    }
-                                }
-                                Gate::Not { input } => {
-                                    if let Ok(input_wire) = self.get_wire(input) {
-                                        match input_wire.signal {
-                                            Signal::Value(signal) => {
-                                                self.set_signal_of(id, Signal::Value(!signal));
-                                                ids.pop();
-                                            }
-                                            Signal::Uncomputable => {
-                                                for id in &ids[root_index.unwrap()..] {
-                                                    self.set_signal_of(id, Signal::Uncomputable);
-                                                }
-                                                ids.truncate(root_index.unwrap());
-                                            }
-                                            Signal::Uncomputed => {
-                                                if ids[root_index.unwrap()..].contains(input) {
-                                                    return Err(Error::CircuitLoop);
-                                                }
-                                                ids.push(input.to_owned());
-                                            }
-                                        }
-                                    } else {
-                                        for id in &ids[root_index.unwrap()..] {
-                                            self.set_signal_of(id, Signal::Uncomputable);
-                                        }
-                                        ids.truncate(root_index.unwrap());
+                                        ids.truncate(root_index);
                                     }
                                 }
                             },
@@ -437,13 +282,10 @@ impl Circuit {
                 }
             } else {
                 // Unkwown wire id
-                for id in &ids[root_index.unwrap()..] {
+                for id in &ids[root_index..] {
                     self.set_signal_of(id, Signal::Uncomputable);
                 }
-                ids.truncate(root_index.unwrap());
-            }
-            if root_index.unwrap() >= ids.len() {
-                root_index = None
+                ids.truncate(root_index);
             }
         }
         Ok(())
@@ -531,14 +373,14 @@ impl TryFrom<&str> for Circuit {
 }
 
 // https://stackoverflow.com/questions/46766560/how-to-check-if-there-are-duplicates-in-a-slice
-fn has_duplicate_elements<T>(iter: T) -> bool
-where
-    T: IntoIterator,
-    T::Item: Eq + Hash,
-{
-    let mut uniq = HashSet::new();
-    iter.into_iter().any(move |x| !uniq.insert(x))
-}
+// fn has_duplicate_elements<T>(iter: T) -> bool
+// where
+//     T: IntoIterator,
+//     T::Item: Eq + Hash,
+// {
+//     let mut uniq = HashSet::new();
+//     iter.into_iter().any(move |x| !uniq.insert(x))
+// }
 
 #[cfg(test)]
 mod tests {
@@ -748,29 +590,29 @@ mod tests {
     #[test]
     fn non_connected_wires() {
         let mut c = Circuit::new();
-        // c.add_wire_with_value("x", 0xfff0).unwrap();
-        // c.add_wire_with_value("y", 0x0fff).unwrap();
-        // c.add_gate_or("xoy", "x", "y").unwrap();
-        // c.add_gate_and("xoyau", "xoy", "unknown").unwrap();
+        c.add_wire_with_value("x", 0xfff0).unwrap();
+        c.add_wire_with_value("y", 0x0fff).unwrap();
+        c.add_gate_or("xoy", "x", "y").unwrap();
+        c.add_gate_and("xoyau", "xoy", "unknown").unwrap();
         c.add_gate_sll("u", "unknown", 2).unwrap();
-        // c.add_gate_slr("v", "unknown", 2).unwrap();
-        // c.add_gate_not("nxoy", "xoy").unwrap();
-        // c.add_gate_not("w", "unknown").unwrap();
+        c.add_gate_slr("v", "unknown", 2).unwrap();
+        c.add_gate_not("nxoy", "xoy").unwrap();
+        c.add_gate_not("w", "unknown").unwrap();
 
         assert!(c.compute_signals().is_ok());
 
-        // assert_eq!(c.signal_from("x"), Signal::Value(0xfff0));
-        // assert_eq!(c.signal_from("y"), Signal::Value(0x0fff));
-        // assert_eq!(c.signal_from("xoy"), Signal::Value(0xffff));
-        // assert_eq!(c.signal_from("nxoy"), Signal::Value(0x0));
-        // assert_eq!(c.signal_from("u"), Signal::Uncomputable);
-        // assert_eq!(c.signal_from("v"), Signal::Uncomputable);
-        // assert_eq!(c.signal_from("w"), Signal::Uncomputable);
-        // assert_eq!(c.signal_from("xoyau"), Signal::Uncomputable);
-        // assert!(matches!(
-        //     c.get_signal_from("unknown"),
-        //     Err(Error::UnknownWireId(_))
-        // ));
+        assert_eq!(c.signal_from("x"), Signal::Value(0xfff0));
+        assert_eq!(c.signal_from("y"), Signal::Value(0x0fff));
+        assert_eq!(c.signal_from("xoy"), Signal::Value(0xffff));
+        assert_eq!(c.signal_from("nxoy"), Signal::Value(0x0));
+        assert_eq!(c.signal_from("u"), Signal::Uncomputable);
+        assert_eq!(c.signal_from("v"), Signal::Uncomputable);
+        assert_eq!(c.signal_from("w"), Signal::Uncomputable);
+        assert_eq!(c.signal_from("xoyau"), Signal::Uncomputable);
+        assert!(matches!(
+            c.get_signal_from("unknown"),
+            Err(Error::UnknownWireId(_))
+        ));
     }
 
     #[test]
@@ -847,5 +689,11 @@ mod tests {
         assert_eq!(c.signal_from("y"), Signal::Value(0x100));
         assert_eq!(c.signal_from("z"), Signal::Value(0x110));
         assert_eq!(c.signal_from("nz"), Signal::Value(0xfeef));
+    }
+
+    #[test]
+    fn empty_circuit() {
+        let mut circuit = Circuit::new();
+        assert!(circuit.compute_signals().is_ok());
     }
 }
