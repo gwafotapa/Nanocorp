@@ -426,7 +426,10 @@ mod tests {
     fn conflicting_wires() {
         let mut circuit = Circuit::new();
         assert!(circuit.add_wire_with_value("w", 0).is_ok());
-        assert!(circuit.add_wire_with_value("w", 1).is_err());
+        assert!(matches!(
+            circuit.add_wire_with_value("w", 1),
+            Err(Error::WireIdAlreadyExists(_))
+        ));
     }
 
     #[test]
@@ -436,20 +439,16 @@ mod tests {
         let w2 = Wire::from_wire("b", "a").unwrap();
         assert!(circuit.add(w1).is_ok());
         assert!(circuit.add(w2).is_ok());
-        assert!(circuit.get_signal_from("z").is_err()); // TODO: should return unknown wire error
-                                                        // TODO: remove matches! and use signal_from instead ?
         assert!(matches!(
-            circuit.get_signal_from("a"),
-            Ok(Signal::Uncomputed)
+            circuit.get_signal_from("z"),
+            Err(Error::UnknownWireId(_))
         ));
-        assert!(matches!(
-            circuit.get_signal_from("b"),
-            Ok(Signal::Uncomputed)
-        ));
+        assert_eq!(circuit.signal_from("a"), Signal::Uncomputed);
+        assert_eq!(circuit.signal_from("b"), Signal::Uncomputed);
 
         assert!(circuit.compute_signals().is_ok());
-        assert!(matches!(circuit.get_signal_from("a"), Ok(Signal::Value(1))));
-        assert!(matches!(circuit.get_signal_from("b"), Ok(Signal::Value(1))));
+        assert_eq!(circuit.signal_from("a"), Signal::Value(1));
+        assert_eq!(circuit.signal_from("b"), Signal::Value(1));
 
         // let g = Gate::not("b").unwrap();
         // let c = Wire::from_gate("c", g).unwrap();
@@ -490,38 +489,14 @@ mod tests {
 
         assert!(circuit.compute_signals().is_ok());
 
-        assert!(matches!(
-            circuit.get_signal_from("d"),
-            Ok(Signal::Value(72))
-        ));
-        assert!(matches!(
-            circuit.get_signal_from("e"),
-            Ok(Signal::Value(507))
-        ));
-        assert!(matches!(
-            circuit.get_signal_from("f"),
-            Ok(Signal::Value(492))
-        ));
-        assert!(matches!(
-            circuit.get_signal_from("g"),
-            Ok(Signal::Value(114))
-        ));
-        assert!(matches!(
-            circuit.get_signal_from("h"),
-            Ok(Signal::Value(65412))
-        ));
-        assert!(matches!(
-            circuit.get_signal_from("i"),
-            Ok(Signal::Value(65079))
-        ));
-        assert!(matches!(
-            circuit.get_signal_from("x"),
-            Ok(Signal::Value(123))
-        ));
-        assert!(matches!(
-            circuit.get_signal_from("y"),
-            Ok(Signal::Value(456))
-        ));
+        assert_eq!(circuit.signal_from("d"), Signal::Value(72));
+        assert_eq!(circuit.signal_from("e"), Signal::Value(507));
+        assert_eq!(circuit.signal_from("f"), Signal::Value(492));
+        assert_eq!(circuit.signal_from("g"), Signal::Value(114));
+        assert_eq!(circuit.signal_from("h"), Signal::Value(65412));
+        assert_eq!(circuit.signal_from("i"), Signal::Value(65079));
+        assert_eq!(circuit.signal_from("x"), Signal::Value(123));
+        assert_eq!(circuit.signal_from("y"), Signal::Value(456));
         Ok(())
     }
 
@@ -541,38 +516,14 @@ mod tests {
         // println!("{}", circuit);
         // circuit.print_signals();
 
-        assert!(matches!(
-            circuit.get_signal_from("d"),
-            Ok(Signal::Value(72))
-        ));
-        assert!(matches!(
-            circuit.get_signal_from("e"),
-            Ok(Signal::Value(507))
-        ));
-        assert!(matches!(
-            circuit.get_signal_from("f"),
-            Ok(Signal::Value(492))
-        ));
-        assert!(matches!(
-            circuit.get_signal_from("g"),
-            Ok(Signal::Value(114))
-        ));
-        assert!(matches!(
-            circuit.get_signal_from("h"),
-            Ok(Signal::Value(65412))
-        ));
-        assert!(matches!(
-            circuit.get_signal_from("i"),
-            Ok(Signal::Value(65079))
-        ));
-        assert!(matches!(
-            circuit.get_signal_from("x"),
-            Ok(Signal::Value(123))
-        ));
-        assert!(matches!(
-            circuit.get_signal_from("y"),
-            Ok(Signal::Value(456))
-        ));
+        assert_eq!(circuit.signal_from("d"), Signal::Value(72));
+        assert_eq!(circuit.signal_from("e"), Signal::Value(507));
+        assert_eq!(circuit.signal_from("f"), Signal::Value(492));
+        assert_eq!(circuit.signal_from("g"), Signal::Value(114));
+        assert_eq!(circuit.signal_from("h"), Signal::Value(65412));
+        assert_eq!(circuit.signal_from("i"), Signal::Value(65079));
+        assert_eq!(circuit.signal_from("x"), Signal::Value(123));
+        assert_eq!(circuit.signal_from("y"), Signal::Value(456));
         Ok(())
     }
 
@@ -700,12 +651,21 @@ mod tests {
         c.add_gate_or("z", "x", "y").unwrap();
         c.add_gate_not("nz", "z").unwrap();
         assert!(c.compute_signals().is_ok());
-        assert!(c.get_signal_from("a").is_err());
+
+        assert!(matches!(
+            c.get_signal_from("a"),
+            Err(Error::UnknownWireId(_))
+        ));
+        assert!(matches!(
+            c.get_signal_from("d"),
+            Err(Error::UnknownWireId(_))
+        ));
+
         assert_eq!(c.signal_from("b"), Signal::Value(0x10));
         assert_eq!(c.signal_from("c"), Signal::Value(0x100));
-        assert!(c.get_signal_from("d").is_err());
-        assert_eq!(c.signal_from("aob"), Signal::Uncomputable);
         assert_eq!(c.signal_from("boc"), Signal::Value(0x110));
+
+        assert_eq!(c.signal_from("aob"), Signal::Uncomputable);
         assert_eq!(c.signal_from("cod"), Signal::Uncomputable);
         assert_eq!(c.signal_from("x"), Signal::Uncomputable);
         assert_eq!(c.signal_from("y"), Signal::Uncomputable);
@@ -716,6 +676,7 @@ mod tests {
         c.add_wire_with_value("a", 0x1).unwrap();
         c.add_wire_with_value("d", 0x1000).unwrap();
         assert!(c.compute_signals().is_ok());
+
         assert_eq!(c.signal_from("a"), Signal::Value(0x1));
         assert_eq!(c.signal_from("b"), Signal::Value(0x10));
         assert_eq!(c.signal_from("c"), Signal::Value(0x100));
