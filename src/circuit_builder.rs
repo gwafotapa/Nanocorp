@@ -7,7 +7,7 @@ use crate::{
     wire_id::WireId,
 };
 
-#[derive(Default)]
+#[derive(Clone, Debug, Default)]
 pub struct CircuitBuilder {
     wires: collections::HashMap<WireId, Wire>,
 }

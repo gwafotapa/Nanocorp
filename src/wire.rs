@@ -7,14 +7,14 @@ use crate::{
     wire_id::WireId,
 };
 
-#[derive(Debug, PartialEq)]
+#[derive(Clone, Debug, Eq, Hash, PartialEq)]
 pub enum WireInput {
     Value(u16),
     Wire(WireId),
     Gate(Gate),
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Clone, Debug, Eq, Hash, PartialEq)]
 pub struct Wire {
     pub id: WireId,
     pub input: WireInput,

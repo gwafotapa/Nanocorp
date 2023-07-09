@@ -1,10 +1,7 @@
 use std::{
-    collections::HashMap,
-    fmt,
-    fs::{self, File},
+    collections, fmt, fs,
     io::{self, Write},
-    mem,
-    path::Path,
+    mem, path,
 };
 
 use crate::{
@@ -15,11 +12,10 @@ use crate::{
     wire_id::WireId,
 };
 
-// TODO: check for types implementing clone, copy, ...
 // TODO: private fields ?
-#[derive(Debug, Default)]
+#[derive(Clone, Debug, Default)]
 pub struct Circuit {
-    pub wires: HashMap<WireId, Wire>,
+    pub wires: collections::HashMap<WireId, Wire>,
     pub uncomputed: Vec<WireId>,
     pub uncomputable: Vec<WireId>,
 }
@@ -327,14 +323,14 @@ impl Circuit {
             })
     }
 
-    pub fn read<P: AsRef<Path>>(path: P) -> Result<Self> {
+    pub fn read<P: AsRef<path::Path>>(path: P) -> Result<Self> {
         let s = fs::read_to_string(path)?;
         Self::try_from(s.as_str())
     }
 
-    pub fn write<P: AsRef<Path>>(&self, path: P) -> io::Result<()> {
+    pub fn write<P: AsRef<path::Path>>(&self, path: P) -> io::Result<()> {
         let data = self.to_string();
-        let mut f = File::create(path)?;
+        let mut f = fs::File::create(path)?;
         f.write_all(data.as_bytes())
     }
 

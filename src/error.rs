@@ -6,7 +6,7 @@ use crate::wire_id::WireId;
 
 pub type Result<T> = result::Result<T, Error>;
 
-#[derive(thiserror::Error, Debug)]
+#[derive(Debug, thiserror::Error)]
 pub enum Error {
     #[error("Wire id '{0}' is not ascii lowercase")]
     InvalidWireId(String),
