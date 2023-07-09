@@ -1,6 +1,10 @@
 use std::fmt;
 
-use crate::{error::Error, signal::Signal, wire_id::WireId};
+use crate::{
+    error::{Error, Result},
+    signal::Signal,
+    wire_id::WireId,
+};
 
 // TODO: derive Eq, Hash, Clone ?
 #[derive(Debug, PartialEq)]
@@ -9,53 +13,53 @@ pub enum Gate {
     AndValue { input: WireId, value: u16 },
     Or { input1: WireId, input2: WireId },
     OrValue { input: WireId, value: u16 },
-    SLL { input: WireId, shift: u8 },
-    SLR { input: WireId, shift: u8 },
+    LShift { input: WireId, shift: u8 },
+    RShift { input: WireId, shift: u8 },
     Not { input: WireId },
 }
 
 impl Gate {
-    pub fn and<S: Into<String>, T: Into<String>>(input1: S, input2: T) -> Result<Self, Error> {
+    pub fn and<S: Into<String>, T: Into<String>>(input1: S, input2: T) -> Result<Self> {
         let input1 = WireId::try_from(input1.into())?;
         let input2 = WireId::try_from(input2.into())?;
         Ok(Self::And { input1, input2 })
     }
 
-    pub fn and_value<S: Into<String>>(input: S, value: u16) -> Result<Self, Error> {
+    pub fn and_value<S: Into<String>>(input: S, value: u16) -> Result<Self> {
         let input = WireId::try_from(input.into())?;
         Ok(Self::AndValue { input, value })
     }
 
-    pub fn or<S: Into<String>, T: Into<String>>(input1: S, input2: T) -> Result<Self, Error> {
+    pub fn or<S: Into<String>, T: Into<String>>(input1: S, input2: T) -> Result<Self> {
         let input1 = WireId::try_from(input1.into())?;
         let input2 = WireId::try_from(input2.into())?;
         Ok(Self::Or { input1, input2 })
     }
 
-    pub fn or_value<S: Into<String>>(input: S, value: u16) -> Result<Self, Error> {
+    pub fn or_value<S: Into<String>>(input: S, value: u16) -> Result<Self> {
         let input = WireId::try_from(input.into())?;
         Ok(Self::OrValue { input, value })
     }
 
-    pub fn sll<S: Into<String>>(input: S, shift: u8) -> Result<Self, Error> {
+    pub fn lshift<S: Into<String>>(input: S, shift: u8) -> Result<Self> {
         let input = WireId::try_from(input.into())?;
         if shift < 16 {
-            Ok(Self::SLL { input, shift })
+            Ok(Self::LShift { input, shift })
         } else {
             Err(Error::TooLargeShift(shift))
         }
     }
 
-    pub fn slr<S: Into<String>>(input: S, shift: u8) -> Result<Self, Error> {
+    pub fn rshift<S: Into<String>>(input: S, shift: u8) -> Result<Self> {
         let input = WireId::try_from(input.into())?;
         if shift < 16 {
-            Ok(Self::SLR { input, shift })
+            Ok(Self::RShift { input, shift })
         } else {
             Err(Error::TooLargeShift(shift))
         }
     }
 
-    pub fn not<S: Into<String>>(input: S) -> Result<Self, Error> {
+    pub fn not<S: Into<String>>(input: S) -> Result<Self> {
         let input = WireId::try_from(input.into())?;
         Ok(Self::Not { input })
     }
@@ -66,8 +70,8 @@ impl Gate {
             Gate::Or { input1, input2 } => id == input1 || id == input2,
             Gate::AndValue { input, .. } => id == input,
             Gate::OrValue { input, .. } => id == input,
-            Gate::SLL { input, .. } => id == input,
-            Gate::SLR { input, .. } => id == input,
+            Gate::LShift { input, .. } => id == input,
+            Gate::RShift { input, .. } => id == input,
             Gate::Not { input } => id == input,
         }
     }
@@ -79,8 +83,8 @@ impl Gate {
             Gate::Or { .. } => Signal::Value(input1.unwrap() | input2.unwrap()),
             Gate::AndValue { value, .. } => Signal::Value(input1.unwrap() & value),
             Gate::OrValue { value, .. } => Signal::Value(input1.unwrap() | value),
-            Gate::SLL { shift, .. } => Signal::Value(input1.unwrap() << shift),
-            Gate::SLR { shift, .. } => Signal::Value(input1.unwrap() >> shift),
+            Gate::LShift { shift, .. } => Signal::Value(input1.unwrap() << shift),
+            Gate::RShift { shift, .. } => Signal::Value(input1.unwrap() >> shift),
             Gate::Not { .. } => Signal::Value(!input1.unwrap()),
         }
     }
@@ -101,10 +105,10 @@ impl fmt::Display for Gate {
             Gate::OrValue { input, value } => {
                 write!(f, "{} OR {}", input, value)
             }
-            Gate::SLL { input, shift } => {
+            Gate::LShift { input, shift } => {
                 write!(f, "{} LSHIFT {}", input, shift)
             }
-            Gate::SLR { input, shift } => {
+            Gate::RShift { input, shift } => {
                 write!(f, "{} RSHIFT {}", input, shift)
             }
             Gate::Not { input } => {
@@ -117,7 +121,7 @@ impl fmt::Display for Gate {
 impl TryFrom<&str> for Gate {
     type Error = Error;
 
-    fn try_from(s: &str) -> Result<Self, Error> {
+    fn try_from(s: &str) -> Result<Self> {
         let elements: Vec<&str> = s.split(' ').collect();
         match elements.len() {
             2 => {
@@ -146,8 +150,8 @@ impl TryFrom<&str> for Gate {
                         Gate::or(elements[0], elements[2])
                     }
                 }
-                "LSHIFT" => Gate::sll(elements[0], elements[2].parse::<u8>()?),
-                "RSHIFT" => Gate::slr(elements[0], elements[2].parse::<u8>()?),
+                "LSHIFT" => Gate::lshift(elements[0], elements[2].parse::<u8>()?),
+                "RSHIFT" => Gate::rshift(elements[0], elements[2].parse::<u8>()?),
                 _ => Err(Error::ParseGate(s.to_string())),
             },
             _ => Err(Error::ParseGate(s.to_string())),
@@ -169,9 +173,12 @@ mod tests {
 
     #[test]
     fn shift_amount() {
-        assert!(Gate::sll("sh", 0).is_ok());
-        assert!(Gate::slr("sh", 15).is_ok());
-        assert!(matches!(Gate::slr("sh", 16), Err(Error::TooLargeShift(16))));
+        assert!(Gate::lshift("sh", 0).is_ok());
+        assert!(Gate::rshift("sh", 15).is_ok());
+        assert!(matches!(
+            Gate::rshift("sh", 16),
+            Err(Error::TooLargeShift(16))
+        ));
     }
 
     // TODO: matches!

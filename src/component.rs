@@ -25,12 +25,11 @@ pub enum ComponentKind {
     GateNot {
         input: ComponentInput,
     },
-    GateSLL {
-        // TODO: GateLShift ?
+    GateLShift {
         input: ComponentInput,
         shift: u8,
     },
-    GateSLR {
+    GateRShift {
         input: ComponentInput,
         shift: u8,
     },
@@ -42,22 +41,19 @@ pub enum ComponentInput {
 }
 
 impl Component {
-    // pub fn new(id: S, kind: ComponentKind) -> Result<Self, Error> {
+    // pub fn new(id: S, kind: ComponentKind) -> Result<Self> {
     // 	let id = id.into();
     // }
 
-    pub fn wire_with_value(id: S, value: u16) -> Result<Self, Error> {
+    pub fn wire_with_value(id: S, value: u16) -> Result<Self> {
         Self::wire(id, ComponentInput::Value(value))
     }
 
-    pub fn wire_from_component(
-        id: S,
-        input_id: S,
-    ) -> Result<Self, Error> {
+    pub fn wire_from_component(id: S, input_id: S) -> Result<Self> {
         Self::wire(id, ComponentInput::Id(input_id.into()))
     }
 
-    pub fn wire(id: S, input: ComponentInput) -> Result<Self, Error> {
+    pub fn wire(id: S, input: ComponentInput) -> Result<Self> {
         let id = id.into();
         if id.bytes().all(|b| b.is_ascii_lowercase()) {
             Ok(Self {
@@ -70,11 +66,7 @@ impl Component {
         }
     }
 
-    pub fn gate_and(
-        id: S,
-        input1: S,
-        input2: S,
-    ) -> Result<Self, Error> {
+    pub fn gate_and(id: S, input1: S, input2: S) -> Result<Self> {
         let id = id.into();
         if id.bytes().all(|b| b.is_ascii_uppercase()) {
             Ok(Self {
@@ -90,11 +82,7 @@ impl Component {
         }
     }
 
-    pub fn gate_or(
-        id: S,
-        input1: S,
-        input2: S,
-    ) -> Result<Self, Error> {
+    pub fn gate_or(id: S, input1: S, input2: S) -> Result<Self> {
         let id = id.into();
         if id.bytes().all(|b| b.is_ascii_uppercase()) {
             Ok(Self {
@@ -110,11 +98,7 @@ impl Component {
         }
     }
 
-    pub fn gate_sll(
-        id: S,
-        input: S,
-        shift: u8,
-    ) -> Result<Self, Error> {
+    pub fn gate_lshift(id: S, input: S, shift: u8) -> Result<Self> {
         let id = id.into();
         if !id.bytes().all(|b| b.is_ascii_uppercase()) {
             Err(Error::WrongFormatId(id))
@@ -123,7 +107,7 @@ impl Component {
         } else {
             Ok(Self {
                 id,
-                kind: ComponentKind::GateSLL {
+                kind: ComponentKind::GateLShift {
                     input: input.into(),
                     shift,
                 },
@@ -132,11 +116,7 @@ impl Component {
         }
     }
 
-    pub fn gate_slr(
-        id: S,
-        input: S,
-        shift: u8,
-    ) -> Result<Self, Error> {
+    pub fn gate_rshift(id: S, input: S, shift: u8) -> Result<Self> {
         let id = id.into();
         if !id.bytes().all(|b| b.is_ascii_uppercase()) {
             Err(Error::WrongFormatId(id))
@@ -145,7 +125,7 @@ impl Component {
         } else {
             Ok(Self {
                 id,
-                kind: ComponentKind::GateSLR {
+                kind: ComponentKind::GateRShift {
                     input: input.into(),
                     shift,
                 },
@@ -154,7 +134,7 @@ impl Component {
         }
     }
 
-    pub fn gate_not(id: S, input: S) -> Result<Self, Error> {
+    pub fn gate_not(id: S, input: S) -> Result<Self> {
         let id = id.into();
         if id.bytes().all(|b| b.is_ascii_uppercase()) {
             Ok(Self {
@@ -178,8 +158,8 @@ impl fmt::Display for Component {
             }
             ComponentKind::GateAnd { input1, input2 } => {}
             ComponentKind::GateOr { input1, input2 } => {}
-            ComponentKind::GateSLL { input, shift } => {}
-            ComponentKind::GateSLR { input, shift } => {}
+            ComponentKind::GateLShift { input, shift } => {}
+            ComponentKind::GateRShift { input, shift } => {}
             ComponentKind::GateNot { input } => {}
         }
     }

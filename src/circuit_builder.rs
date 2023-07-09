@@ -114,24 +114,24 @@ impl CircuitBuilder {
         self
     }
 
-    pub fn add_gate_sll<S: Into<String>, T: Into<String>>(
+    pub fn add_gate_lshift<S: Into<String>, T: Into<String>>(
         &mut self,
         output: S,
         input: T,
         shift: u8,
     ) -> &mut CircuitBuilder {
-        let wire = Wire::from_gate_sll(output, input, shift).unwrap();
+        let wire = Wire::from_gate_lshift(output, input, shift).unwrap();
         self.add(wire);
         self
     }
 
-    pub fn add_gate_slr<S: Into<String>, T: Into<String>>(
+    pub fn add_gate_rshift<S: Into<String>, T: Into<String>>(
         &mut self,
         output: S,
         input: T,
         shift: u8,
     ) -> &mut CircuitBuilder {
-        let wire = Wire::from_gate_slr(output, input, shift).unwrap();
+        let wire = Wire::from_gate_rshift(output, input, shift).unwrap();
         self.add(wire);
         self
     }
@@ -158,8 +158,8 @@ mod tests {
             .add_wire_with_value("y", 456)
             .add_gate_and("d", "x", "y")
             .add_gate_or("e", "x", "y")
-            .add_gate_sll("f", "x", 2)
-            .add_gate_slr("g", "y", 2)
+            .add_gate_lshift("f", "x", 2)
+            .add_gate_rshift("g", "y", 2)
             .add_gate_not("h", "x")
             .add_gate_not("i", "y")
             .build();
@@ -183,8 +183,8 @@ mod tests {
         builder.add_wire_with_value("y", 456);
         builder.add_gate_and("d", "x", "y");
         builder.add_gate_or("e", "x", "y");
-        builder.add_gate_sll("f", "x", 2);
-        builder.add_gate_slr("g", "y", 2);
+        builder.add_gate_lshift("f", "x", 2);
+        builder.add_gate_rshift("g", "y", 2);
         builder.add_gate_not("h", "x");
         builder.add_gate_not("i", "y");
         let mut circuit = builder.build();

@@ -1,6 +1,6 @@
 use std::{fmt, ops};
 
-use crate::error::Error;
+use crate::error::{Error, Result};
 
 #[derive(Clone, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
 pub struct WireId(String);
@@ -18,7 +18,7 @@ pub struct WireId(String);
 impl TryFrom<String> for WireId {
     type Error = Error;
 
-    fn try_from(s: String) -> Result<Self, Error> {
+    fn try_from(s: String) -> Result<Self> {
         if !s.is_empty() && s.bytes().all(|b| b.is_ascii_lowercase()) {
             Ok(Self(s))
         } else {
@@ -30,7 +30,7 @@ impl TryFrom<String> for WireId {
 impl TryFrom<&str> for WireId {
     type Error = Error;
 
-    fn try_from(s: &str) -> Result<Self, Error> {
+    fn try_from(s: &str) -> Result<Self> {
         Self::try_from(String::from(s))
     }
 }

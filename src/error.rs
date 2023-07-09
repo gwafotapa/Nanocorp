@@ -1,8 +1,10 @@
-use std::{io, num};
+use std::{io, num, result};
 
 use thiserror;
 
 use crate::wire_id::WireId;
+
+pub type Result<T> = result::Result<T, Error>;
 
 #[derive(thiserror::Error, Debug)]
 pub enum Error {

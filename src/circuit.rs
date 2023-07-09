@@ -8,7 +8,7 @@ use std::{
 };
 
 use crate::{
-    error::Error,
+    error::{Error, Result},
     gate::Gate,
     signal::Signal,
     wire::{Wire, WireInput},
@@ -35,12 +35,7 @@ impl Circuit {
         Self::default()
     }
 
-    // TODO: update uncomputed and uncomputable
-    // pub fn remove(&mut self, id: &WireId) {
-    //     self.wires.remove(id);
-    // }
-
-    pub fn add(&mut self, wire: Wire) -> Result<(), Error> {
+    pub fn add(&mut self, wire: Wire) -> Result<()> {
         if self.wires.contains_key(&wire.id) {
             Err(Error::WireIdAlreadyExists(wire.id))
         } else {
@@ -50,16 +45,12 @@ impl Circuit {
         }
     }
 
-    pub fn add_wire_with_input<S: Into<String>>(
-        &mut self,
-        id: S,
-        input: WireInput,
-    ) -> Result<(), Error> {
+    pub fn add_wire_with_input<S: Into<String>>(&mut self, id: S, input: WireInput) -> Result<()> {
         let wire = Wire::new(id, input)?;
         self.add(wire)
     }
 
-    pub fn add_wire_with_value<S: Into<String>>(&mut self, id: S, value: u16) -> Result<(), Error> {
+    pub fn add_wire_with_value<S: Into<String>>(&mut self, id: S, value: u16) -> Result<()> {
         let wire = Wire::with_value(id, value)?;
         self.add(wire)
     }
@@ -68,12 +59,12 @@ impl Circuit {
         &mut self,
         id: S,
         input_id: T,
-    ) -> Result<(), Error> {
+    ) -> Result<()> {
         let wire = Wire::from_wire(id, input_id)?;
         self.add(wire)
     }
 
-    pub fn add_wire_from_gate<S: Into<String>>(&mut self, id: S, gate: Gate) -> Result<(), Error> {
+    pub fn add_wire_from_gate<S: Into<String>>(&mut self, id: S, gate: Gate) -> Result<()> {
         let wire = Wire::from_gate(id, gate)?;
         self.add(wire)
     }
@@ -83,7 +74,7 @@ impl Circuit {
         output: S,
         input1: T,
         input2: U,
-    ) -> Result<(), Error> {
+    ) -> Result<()> {
         let gate = Gate::and(input1, input2)?;
         let wire = Wire::from_gate(output, gate)?;
         self.add(wire)
@@ -94,7 +85,7 @@ impl Circuit {
         output: S,
         input: T,
         value: u16,
-    ) -> Result<(), Error> {
+    ) -> Result<()> {
         let gate = Gate::and_value(input, value)?;
         let wire = Wire::from_gate(output, gate)?;
         self.add(wire)
@@ -105,7 +96,7 @@ impl Circuit {
         output: S,
         input1: T,
         input2: U,
-    ) -> Result<(), Error> {
+    ) -> Result<()> {
         let gate = Gate::or(input1, input2)?;
         let wire = Wire::from_gate(output, gate)?;
         self.add(wire)
@@ -116,30 +107,30 @@ impl Circuit {
         output: S,
         input: T,
         value: u16,
-    ) -> Result<(), Error> {
+    ) -> Result<()> {
         let gate = Gate::or_value(input, value)?;
         let wire = Wire::from_gate(output, gate)?;
         self.add(wire)
     }
 
-    pub fn add_gate_sll<S: Into<String>, T: Into<String>>(
+    pub fn add_gate_lshift<S: Into<String>, T: Into<String>>(
         &mut self,
         output: S,
         input: T,
         shift: u8,
-    ) -> Result<(), Error> {
-        let gate = Gate::sll(input, shift)?;
+    ) -> Result<()> {
+        let gate = Gate::lshift(input, shift)?;
         let wire = Wire::from_gate(output, gate)?;
         self.add(wire)
     }
 
-    pub fn add_gate_slr<S: Into<String>, T: Into<String>>(
+    pub fn add_gate_rshift<S: Into<String>, T: Into<String>>(
         &mut self,
         output: S,
         input: T,
         shift: u8,
-    ) -> Result<(), Error> {
-        let gate = Gate::slr(input, shift)?;
+    ) -> Result<()> {
+        let gate = Gate::rshift(input, shift)?;
         let wire = Wire::from_gate(output, gate)?;
         self.add(wire)
     }
@@ -148,16 +139,16 @@ impl Circuit {
         &mut self,
         output: S,
         input: T,
-    ) -> Result<(), Error> {
+    ) -> Result<()> {
         let gate = Gate::not(input)?;
         let wire = Wire::from_gate(output, gate)?;
         self.add(wire)
     }
 
-    pub fn compute_signals(&mut self) -> Result<(), Error> {
+    pub fn compute_signals(&mut self) -> Result<()> {
         let mut to_be_computed = mem::take(&mut self.uncomputable);
         for id in &mut to_be_computed {
-            self.set_signal_of(id, Signal::Uncomputed);
+            self.set_signal_of(id, Signal::Uncomputed).unwrap();
         }
         to_be_computed.append(&mut self.uncomputed);
         self.compute_signals_of(to_be_computed)?;
@@ -173,18 +164,14 @@ impl Circuit {
         root_index: usize,
     ) -> Vec<WireId> {
         for id in &ids[root_index..] {
-            self.set_signal_of(id, Signal::Uncomputable);
+            self.set_signal_of(id, Signal::Uncomputable).unwrap();
             self.uncomputable.push(id.to_owned());
         }
         ids.truncate(root_index);
         ids
     }
 
-    // TODO: define type Signal = Option<u16>
-    // TODO: rework
-    // TODO: Need reset_signals() in case we add wire after compute_signals
-    pub fn compute_signals_of(&mut self, mut ids: Vec<WireId>) -> Result<(), Error> {
-        // let mut ids: Vec<WireId> = self.wires.keys().map(|id| id.to_owned()).collect();
+    pub fn compute_signals_of(&mut self, mut ids: Vec<WireId>) -> Result<()> {
         // Index of id the computation originated from
         let mut root_index = if ids.is_empty() { 0 } else { ids.len() - 1 };
         while let Some(id) = ids.last() {
@@ -202,14 +189,14 @@ impl Circuit {
                     Signal::Uncomputed => {
                         match &wire.input {
                             WireInput::Value(value) => {
-                                self.set_signal_of(id, Signal::Value(*value));
+                                self.set_signal_of(id, Signal::Value(*value)).unwrap();
                                 ids.pop();
                             }
                             WireInput::Wire(input_id) => {
                                 if let Ok(input_wire) = self.get_wire(input_id) {
                                     match input_wire.signal {
                                         Signal::Value(signal) => {
-                                            self.set_signal_of(id, Signal::Value(signal));
+                                            self.set_signal_of(id, Signal::Value(signal)).unwrap();
                                             ids.pop();
                                         }
                                         Signal::Uncomputable => {
@@ -237,7 +224,8 @@ impl Circuit {
                                                 self.set_signal_of(
                                                     id,
                                                     gate.signal(Some(signal1), Some(signal2)),
-                                                );
+                                                )
+                                                .unwrap();
                                                 ids.pop();
                                             }
                                             (Signal::Uncomputable, _)
@@ -264,8 +252,8 @@ impl Circuit {
                                 }
                                 Gate::AndValue { input, .. }
                                 | Gate::OrValue { input, .. }
-                                | Gate::SLL { input, .. }
-                                | Gate::SLR { input, .. }
+                                | Gate::LShift { input, .. }
+                                | Gate::RShift { input, .. }
                                 | Gate::Not { input } => {
                                     if let Ok(input_wire) = self.get_wire(input) {
                                         match input_wire.signal {
@@ -273,7 +261,8 @@ impl Circuit {
                                                 self.set_signal_of(
                                                     id,
                                                     gate.signal(Some(signal), None),
-                                                );
+                                                )
+                                                .unwrap();
                                                 ids.pop();
                                             }
                                             Signal::Uncomputable => {
@@ -303,8 +292,7 @@ impl Circuit {
         Ok(())
     }
 
-    fn get_wire(&self, id: &WireId) -> Result<&Wire, Error> {
-        // TODO: check for use of clone instead of to_owned
+    fn get_wire(&self, id: &WireId) -> Result<&Wire> {
         self.wires
             .get(id)
             .ok_or(Error::UnknownWireId(id.to_owned()))
@@ -314,7 +302,7 @@ impl Circuit {
         self.get_wire(id).unwrap()
     }
 
-    fn get_signal_of(&self, id: &WireId) -> Result<Signal, Error> {
+    fn get_signal_of(&self, id: &WireId) -> Result<Signal> {
         self.get_wire(id).map(|w| w.signal)
     }
 
@@ -322,7 +310,7 @@ impl Circuit {
         self.get_signal_of(id).unwrap()
     }
 
-    pub fn get_signal_from<S: AsRef<str>>(&self, id: S) -> Result<Signal, Error> {
+    pub fn get_signal_from<S: AsRef<str>>(&self, id: S) -> Result<Signal> {
         let id = WireId::try_from(id.as_ref())?;
         self.get_signal_of(&id)
     }
@@ -332,26 +320,22 @@ impl Circuit {
     }
 
     // TODO: Wire public or private ? wire.set_signal_of() and wire.get_signal() ?
-    // TODO: should return a result for Error::Unknownwireid ?
-    fn set_signal_of(&mut self, id: &WireId, signal: Signal) -> bool {
-        // self.wires
-        //     .get_mut(id)
-        //     .map(|wire| wire.signal = signal)
-        //     .is_some()
-        if let Some(wire) = self.wires.get_mut(id) {
-            wire.signal = signal;
-            true
-        } else {
-            false
-        }
+    fn set_signal_of(&mut self, id: &WireId, signal: Signal) -> Result<()> {
+        self.wires
+            .get_mut(id)
+            .ok_or(Error::UnknownWireId(id.to_owned()))
+            .and_then(|w| {
+                w.signal = signal;
+                Ok(())
+            })
     }
 
-    pub fn read<P: AsRef<Path>>(path: P) -> Result<Self, Error> {
+    pub fn read<P: AsRef<Path>>(path: P) -> Result<Self> {
         let s = fs::read_to_string(path)?;
         Self::try_from(s.as_str())
     }
 
-    pub fn write<P: AsRef<Path>>(&self, path: P) -> Result<(), io::Error> {
+    pub fn write<P: AsRef<Path>>(&self, path: P) -> io::Result<()> {
         let data = self.to_string();
         let mut f = File::create(path)?;
         f.write_all(data.as_bytes())
@@ -365,11 +349,7 @@ impl Circuit {
         self.uncomputed = self.wires.keys().cloned().collect();
     }
 
-    // TODO: alias for result type
-    pub fn remove_wire_then_reset_signals<S: Into<String>>(
-        &mut self,
-        id: S,
-    ) -> Result<Wire, Error> {
+    pub fn remove_wire_then_reset_signals<S: Into<String>>(&mut self, id: S) -> Result<Wire> {
         let id = WireId::try_from(id.into())?;
         self.wires
             .remove(&id)
@@ -380,7 +360,7 @@ impl Circuit {
             })
     }
 
-    pub fn set_wire_then_reset_signals(&mut self, wire: Wire) -> Result<(), Error> {
+    pub fn set_wire_then_reset_signals(&mut self, wire: Wire) -> Result<()> {
         if let Some(w) = self.wires.get_mut(&wire.id) {
             *w = wire;
             self.reset_signals();
@@ -415,7 +395,7 @@ impl fmt::Display for Circuit {
 impl TryFrom<&str> for Circuit {
     type Error = Error;
 
-    fn try_from(s: &str) -> Result<Self, Error> {
+    fn try_from(s: &str) -> Result<Self> {
         let mut circuit = Circuit::new();
         for wire in s.trim_end().split('\n') {
             circuit.add(wire.try_into()?)?
@@ -485,13 +465,13 @@ mod tests {
     }
 
     #[test]
-    fn nanocorp_example_1() -> Result<(), Error> {
+    fn nanocorp_example_1() -> Result<()> {
         let x = Wire::with_value("x", 123)?;
         let y = Wire::with_value("y", 456)?;
         let gd = Gate::and("x", "y")?;
         let ge = Gate::or("x", "y")?;
-        let gf = Gate::sll("x", 2)?;
-        let gg = Gate::slr("y", 2)?;
+        let gf = Gate::lshift("x", 2)?;
+        let gg = Gate::rshift("y", 2)?;
         let gh = Gate::not("x")?;
         let gi = Gate::not("y")?;
         let d = Wire::from_gate("d", gd)?;
@@ -549,14 +529,14 @@ mod tests {
     }
 
     #[test]
-    fn nanocorp_example_1_bis() -> Result<(), Error> {
+    fn nanocorp_example_1_bis() -> Result<()> {
         let mut circuit = Circuit::new();
         circuit.add_wire_with_value("x", 123)?;
         circuit.add_wire_with_value("y", 456)?;
         circuit.add_gate_and("d", "x", "y")?;
         circuit.add_gate_or("e", "x", "y")?;
-        circuit.add_gate_sll("f", "x", 2)?;
-        circuit.add_gate_slr("g", "y", 2)?;
+        circuit.add_gate_lshift("f", "x", 2)?;
+        circuit.add_gate_rshift("g", "y", 2)?;
         circuit.add_gate_not("h", "x")?;
         circuit.add_gate_not("i", "y")?;
         assert!(circuit.compute_signals().is_ok());
@@ -600,7 +580,7 @@ mod tests {
     }
 
     #[test]
-    fn try_from_nanocorp_example_1() -> Result<(), Error> {
+    fn try_from_nanocorp_example_1() -> Result<()> {
         let s = "x AND y -> d\n\
 		 NOT x -> h\n\
 		 NOT y -> i\n\
@@ -616,8 +596,8 @@ mod tests {
         c2.add_wire_with_value("y", 456)?;
         c2.add_gate_and("d", "x", "y")?;
         c2.add_gate_or("e", "x", "y")?;
-        c2.add_gate_sll("f", "x", 2)?;
-        c2.add_gate_slr("g", "y", 2)?;
+        c2.add_gate_lshift("f", "x", 2)?;
+        c2.add_gate_rshift("g", "y", 2)?;
         c2.add_gate_not("h", "x")?;
         c2.add_gate_not("i", "y")?;
 
@@ -626,21 +606,21 @@ mod tests {
     }
 
     #[test]
-    fn read_nanocorp_example_2() -> Result<(), Error> {
+    fn read_nanocorp_example_2() -> Result<()> {
         let c = Circuit::read("circuits/nanocorp_2.txt")?;
         // println!("{}", c);
         Ok(())
     }
 
     // #[test]
-    fn write_nanocorp_example_1() -> Result<(), Error> {
+    fn write_nanocorp_example_1() -> Result<()> {
         let mut c = Circuit::new();
         c.add_wire_with_value("x", 123)?;
         c.add_wire_with_value("y", 456)?;
         c.add_gate_and("d", "x", "y")?;
         c.add_gate_or("e", "x", "y")?;
-        c.add_gate_sll("f", "x", 2)?;
-        c.add_gate_slr("g", "y", 2)?;
+        c.add_gate_lshift("f", "x", 2)?;
+        c.add_gate_rshift("g", "y", 2)?;
         c.add_gate_not("h", "x")?;
         c.add_gate_not("i", "y")?;
         c.write("circuits/nanocorp_1.txt").unwrap();
@@ -654,8 +634,8 @@ mod tests {
         c.add_wire_with_value("y", 0x0fff).unwrap();
         c.add_gate_or("xoy", "x", "y").unwrap();
         c.add_gate_and("xoyau", "xoy", "unknown").unwrap();
-        c.add_gate_sll("u", "unknown", 2).unwrap();
-        c.add_gate_slr("v", "unknown", 2).unwrap();
+        c.add_gate_lshift("u", "unknown", 2).unwrap();
+        c.add_gate_rshift("v", "unknown", 2).unwrap();
         c.add_gate_not("nxoy", "xoy").unwrap();
         c.add_gate_not("w", "unknown").unwrap();
 
