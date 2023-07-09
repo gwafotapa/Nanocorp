@@ -223,7 +223,7 @@ impl Circuit {
                                             (Signal::Value(signal1), Signal::Value(signal2)) => {
                                                 self.set_signal_of(
                                                     id,
-                                                    gate.signal(Some(signal1), Some(signal2)),
+                                                    gate.signal(signal1, Some(signal2)),
                                                 )
                                                 .unwrap();
                                                 ids.pop();
@@ -258,11 +258,8 @@ impl Circuit {
                                     if let Ok(input_wire) = self.get_wire(input) {
                                         match input_wire.signal {
                                             Signal::Value(signal) => {
-                                                self.set_signal_of(
-                                                    id,
-                                                    gate.signal(Some(signal), None),
-                                                )
-                                                .unwrap();
+                                                self.set_signal_of(id, gate.signal(signal, None))
+                                                    .unwrap();
                                                 ids.pop();
                                             }
                                             Signal::Uncomputable => {

@@ -6,8 +6,7 @@ use crate::{
     wire_id::WireId,
 };
 
-// TODO: derive Eq, Hash, Clone ?
-#[derive(Debug, PartialEq)]
+#[derive(Clone, Debug, Eq, Hash, PartialEq)]
 pub enum Gate {
     And { input1: WireId, input2: WireId },
     AndValue { input: WireId, value: u16 },
@@ -76,16 +75,15 @@ impl Gate {
         }
     }
 
-    // TODO: ? Add nested types to enum Gate to implement a signal function for each gate variant
-    pub fn signal(&self, input1: Option<u16>, input2: Option<u16>) -> Signal {
+    pub fn signal(&self, input1: u16, input2: Option<u16>) -> Signal {
         match self {
-            Gate::And { .. } => Signal::Value(input1.unwrap() & input2.unwrap()),
-            Gate::Or { .. } => Signal::Value(input1.unwrap() | input2.unwrap()),
-            Gate::AndValue { value, .. } => Signal::Value(input1.unwrap() & value),
-            Gate::OrValue { value, .. } => Signal::Value(input1.unwrap() | value),
-            Gate::LShift { shift, .. } => Signal::Value(input1.unwrap() << shift),
-            Gate::RShift { shift, .. } => Signal::Value(input1.unwrap() >> shift),
-            Gate::Not { .. } => Signal::Value(!input1.unwrap()),
+            Gate::And { .. } => Signal::Value(input1 & input2.unwrap()),
+            Gate::Or { .. } => Signal::Value(input1 | input2.unwrap()),
+            Gate::AndValue { value, .. } => Signal::Value(input1 & value),
+            Gate::OrValue { value, .. } => Signal::Value(input1 | value),
+            Gate::LShift { shift, .. } => Signal::Value(input1 << shift),
+            Gate::RShift { shift, .. } => Signal::Value(input1 >> shift),
+            Gate::Not { .. } => Signal::Value(!input1),
         }
     }
 }
@@ -165,10 +163,16 @@ mod tests {
 
     #[test]
     fn wire_id() {
-        assert!(Gate::not("").is_err());
-        assert!(Gate::not("A").is_err());
-        assert!(Gate::not("#hashtag").is_err());
-        assert!(Gate::and("input1", "input 2").is_err());
+        assert!(matches!(Gate::not(""), Err(Error::InvalidWireId(_))));
+        assert!(matches!(Gate::not("A"), Err(Error::InvalidWireId(_))));
+        assert!(matches!(
+            Gate::not("#hashtag"),
+            Err(Error::InvalidWireId(_))
+        ));
+        assert!(matches!(
+            Gate::and("input1", "input 2"),
+            Err(Error::InvalidWireId(_))
+        ));
     }
 
     #[test]
@@ -179,22 +183,33 @@ mod tests {
             Gate::rshift("sh", 16),
             Err(Error::TooLargeShift(16))
         ));
+        assert!(matches!(
+            Gate::try_from("a LSHIFT 31"),
+            Err(Error::TooLargeShift(31))
+        ));
     }
 
-    // TODO: matches!
     #[test]
     fn parse_gate() {
-        assert!(Gate::try_from("").is_err());
-        assert!(Gate::try_from("a").is_err());
-        assert!(Gate::try_from("NOT").is_err());
-        assert!(Gate::try_from("a AND NOT b").is_err());
-        assert!(Gate::try_from("a OR").is_err());
-        assert!(Gate::try_from("a NOT b").is_err());
+        assert!(matches!(Gate::try_from(""), Err(Error::ParseGate(_))));
+        assert!(matches!(Gate::try_from("a"), Err(Error::ParseGate(_))));
+        assert!(matches!(Gate::try_from("NOT"), Err(Error::ParseGate(_))));
+        assert!(matches!(
+            Gate::try_from("a AND NOT b"),
+            Err(Error::ParseGate(_))
+        ));
+        assert!(matches!(Gate::try_from("a OR"), Err(Error::ParseGate(_))));
+        assert!(matches!(
+            Gate::try_from("a NOT b"),
+            Err(Error::ParseGate(_))
+        ));
     }
 
     #[test]
     fn parse_shift() {
-        assert!(Gate::try_from("a LSHIFT 16").is_err());
-        assert!(Gate::try_from("a RSHIFT a").is_err());
+        assert!(matches!(
+            Gate::try_from("a RSHIFT a"),
+            Err(Error::ParseShift(_))
+        ));
     }
 }
