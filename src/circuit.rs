@@ -185,7 +185,7 @@ impl Circuit {
     pub fn compute_signals_of(&mut self, mut ids: Vec<WireId>) -> Result<(), Error> {
         // let mut ids: Vec<WireId> = self.wires.keys().map(|id| id.to_owned()).collect();
         // Index of id the computation originated from
-        let mut root_index = if ids.len() > 0 { ids.len() - 1 } else { 0 };
+        let mut root_index = if ids.is_empty() { 0 } else { ids.len() - 1 };
         while let Some(id) = ids.last() {
             if root_index > ids.len() - 1 {
                 root_index = ids.len() - 1;
@@ -331,6 +331,7 @@ impl Circuit {
     }
 
     // TODO: Wire public or private ? wire.set_signal_of() and wire.get_signal() ?
+    // TODO: should return a result for Error::Unknownwireid ?
     fn set_signal_of(&mut self, id: &WireId, signal: Signal) -> bool {
         // self.wires
         //     .get_mut(id)
@@ -353,6 +354,39 @@ impl Circuit {
         let data = self.to_string();
         let mut f = File::create(path)?;
         f.write_all(data.as_bytes())
+    }
+
+    fn reset_signals(&mut self) {
+        self.wires
+            .values_mut()
+            .for_each(|w| w.signal = Signal::Uncomputed);
+        self.uncomputable = vec![];
+        self.uncomputed = self.wires.keys().cloned().collect();
+    }
+
+    // TODO: alias for result type
+    pub fn remove_wire_then_reset_signals<S: Into<String>>(
+        &mut self,
+        id: S,
+    ) -> Result<Wire, Error> {
+        let id = WireId::try_from(id.into())?;
+        self.wires
+            .remove(&id)
+            .ok_or(Error::UnknownWireId(id))
+            .map(|w| {
+                self.reset_signals();
+                w
+            })
+    }
+
+    pub fn set_wire_then_reset_signals(&mut self, wire: Wire) -> Result<(), Error> {
+        if let Some(w) = self.wires.get_mut(&wire.id) {
+            *w = wire;
+            self.reset_signals();
+            Ok(())
+        } else {
+            Err(Error::UnknownWireId(wire.id))
+        }
     }
 }
 
