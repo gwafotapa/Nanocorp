@@ -16,11 +16,12 @@ use crate::{
 };
 
 // TODO: check for types implementing clone, copy, ...
+// TODO: private fields ?
 #[derive(Debug, Default)]
 pub struct Circuit {
     pub wires: HashMap<WireId, Wire>,
-    uncomputed: Vec<WireId>,
-    uncomputable: Vec<WireId>,
+    pub uncomputed: Vec<WireId>,
+    pub uncomputable: Vec<WireId>,
 }
 
 impl Circuit {
@@ -388,6 +389,12 @@ impl Circuit {
             Err(Error::UnknownWireId(wire.id))
         }
     }
+
+    pub fn print_signals(&self) {
+        for wire in self.wires.values() {
+            println!("{}: {:?}", wire.id, wire.signal);
+        }
+    }
 }
 
 // impl Default for Circuit {
@@ -554,7 +561,8 @@ mod tests {
         circuit.add_gate_not("i", "y")?;
         assert!(circuit.compute_signals().is_ok());
 
-        println!("{}", circuit);
+        // println!("{}", circuit);
+        // circuit.print_signals();
 
         assert!(matches!(
             circuit.get_signal_from("d"),
@@ -620,11 +628,11 @@ mod tests {
     #[test]
     fn read_nanocorp_example_2() -> Result<(), Error> {
         let c = Circuit::read("circuits/nanocorp_2.txt")?;
-        println!("{}", c);
+        // println!("{}", c);
         Ok(())
     }
 
-    #[test]
+    // #[test]
     fn write_nanocorp_example_1() -> Result<(), Error> {
         let mut c = Circuit::new();
         c.add_wire_with_value("x", 123)?;

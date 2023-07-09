@@ -345,5 +345,7 @@ fn try_from_nanocorp_example_2() -> Result<(), Error> {
     let mut c = Circuit::try_from(s)?;
     assert!(c.compute_signals().is_ok());
     // println!("{}", c);
+    // c.print_signals();
+    // println!("Uncomputable wires: {}", c.uncomputable.len());
     Ok(())
 }
