@@ -1,5 +1,5 @@
 pub mod circuit;
-// pub mod circuit_builder;
+pub mod circuit_builder;
 pub mod error;
 pub mod gate;
 pub mod signal;

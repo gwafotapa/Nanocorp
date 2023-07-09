@@ -21,7 +21,8 @@ impl CircuitBuilder {
 
     pub fn build(&mut self) -> Circuit {
         let mut circuit = Circuit::new();
-        mem::swap(&mut circuit.wires, &mut self.wires);
+        circuit.wires = mem::take(&mut self.wires);
+        circuit.uncomputed = circuit.wires.keys().cloned().collect();
         circuit
     }
 
@@ -150,6 +151,7 @@ impl CircuitBuilder {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::signal::Signal;
 
     #[test]
     fn one_liner() {
@@ -166,14 +168,14 @@ mod tests {
 
         assert!(circuit.compute_signals().is_ok());
 
-        assert!(matches!(circuit.get_signal_from("d"), Ok(Some(72))));
-        assert!(matches!(circuit.get_signal_from("e"), Ok(Some(507))));
-        assert!(matches!(circuit.get_signal_from("f"), Ok(Some(492))));
-        assert!(matches!(circuit.get_signal_from("g"), Ok(Some(114))));
-        assert!(matches!(circuit.get_signal_from("h"), Ok(Some(65412))));
-        assert!(matches!(circuit.get_signal_from("i"), Ok(Some(65079))));
-        assert!(matches!(circuit.get_signal_from("x"), Ok(Some(123))));
-        assert!(matches!(circuit.get_signal_from("y"), Ok(Some(456))));
+        assert_eq!(circuit.signal_from("d"), Signal::Value(72));
+        assert_eq!(circuit.signal_from("e"), Signal::Value(507));
+        assert_eq!(circuit.signal_from("f"), Signal::Value(492));
+        assert_eq!(circuit.signal_from("g"), Signal::Value(114));
+        assert_eq!(circuit.signal_from("h"), Signal::Value(65412));
+        assert_eq!(circuit.signal_from("i"), Signal::Value(65079));
+        assert_eq!(circuit.signal_from("x"), Signal::Value(123));
+        assert_eq!(circuit.signal_from("y"), Signal::Value(456));
     }
 
     #[test]
@@ -191,14 +193,14 @@ mod tests {
 
         assert!(circuit.compute_signals().is_ok());
 
-        assert!(matches!(circuit.get_signal_from("d"), Ok(Some(72))));
-        assert!(matches!(circuit.get_signal_from("e"), Ok(Some(507))));
-        assert!(matches!(circuit.get_signal_from("f"), Ok(Some(492))));
-        assert!(matches!(circuit.get_signal_from("g"), Ok(Some(114))));
-        assert!(matches!(circuit.get_signal_from("h"), Ok(Some(65412))));
-        assert!(matches!(circuit.get_signal_from("i"), Ok(Some(65079))));
-        assert!(matches!(circuit.get_signal_from("x"), Ok(Some(123))));
-        assert!(matches!(circuit.get_signal_from("y"), Ok(Some(456))));
+        assert_eq!(circuit.signal_from("d"), Signal::Value(72));
+        assert_eq!(circuit.signal_from("e"), Signal::Value(507));
+        assert_eq!(circuit.signal_from("f"), Signal::Value(492));
+        assert_eq!(circuit.signal_from("g"), Signal::Value(114));
+        assert_eq!(circuit.signal_from("h"), Signal::Value(65412));
+        assert_eq!(circuit.signal_from("i"), Signal::Value(65079));
+        assert_eq!(circuit.signal_from("x"), Signal::Value(123));
+        assert_eq!(circuit.signal_from("y"), Signal::Value(456));
     }
 
     #[test]
@@ -213,6 +215,6 @@ mod tests {
             .build();
 
         assert!(circuit.compute_signals().is_ok());
-        assert!(matches!(circuit.get_signal_from("xor"), Ok(Some(0xaa03))));
+        assert_eq!(circuit.signal_from("xor"), Signal::Value(0xaa03));
     }
 }
