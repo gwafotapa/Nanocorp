@@ -7,7 +7,7 @@ use crate::{
 };
 
 #[derive(Clone, Debug, Eq, Hash, PartialEq)]
-pub enum Gate {
+pub(crate) enum Gate {
     And { input1: WireId, input2: WireId },
     AndValue { input: WireId, value: u16 },
     Or { input1: WireId, input2: WireId },

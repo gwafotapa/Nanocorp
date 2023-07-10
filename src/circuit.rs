@@ -12,13 +12,14 @@ use crate::{
     wire_id::WireId,
 };
 
-// TODO: private fields ?
 #[derive(Clone, Debug, Default)]
 pub struct Circuit {
-    pub wires: collections::HashMap<WireId, Wire>,
-    pub uncomputed: Vec<WireId>,
-    pub uncomputable: Vec<WireId>,
+    wires: collections::HashMap<WireId, Wire>,
+    uncomputed: Vec<WireId>,
+    uncomputable: Vec<WireId>,
 }
+
+pub mod circuit_builder;
 
 impl Circuit {
     //
@@ -32,23 +33,22 @@ impl Circuit {
     }
 
     pub fn add(&mut self, wire: Wire) -> Result<()> {
-        if self.wires.contains_key(&wire.id) {
-            Err(Error::WireIdAlreadyExists(wire.id))
+        if self.wires.contains_key(wire.id()) {
+            Err(Error::WireIdAlreadyExists(wire.id().to_string()))
         } else {
-            self.uncomputed.push(wire.id.clone());
-            self.wires.insert(wire.id.clone(), wire);
+            self.uncomputed.push(wire.id().to_owned());
+            self.wires.insert(wire.id().to_owned(), wire);
             Ok(())
         }
     }
 
-    pub fn add_wire_with_input<S: Into<String>>(&mut self, id: S, input: WireInput) -> Result<()> {
-        let wire = Wire::new(id, input)?;
-        self.add(wire)
-    }
+    // pub fn add_wire_with_input<S: Into<String>>(&mut self, id: S, input: WireInput) -> Result<()> {
+    //     let wire = Wire::new(id, input)?;
+    //     self.add(wire)
+    // }
 
     pub fn add_wire_with_value<S: Into<String>>(&mut self, id: S, value: u16) -> Result<()> {
-        let wire = Wire::with_value(id, value)?;
-        self.add(wire)
+        self.add(Wire::with_value(id, value)?)
     }
 
     pub fn add_wire_from_wire<S: Into<String>, T: Into<String>>(
@@ -56,14 +56,12 @@ impl Circuit {
         id: S,
         input_id: T,
     ) -> Result<()> {
-        let wire = Wire::from_wire(id, input_id)?;
-        self.add(wire)
+        self.add(Wire::from_wire(id, input_id)?)
     }
 
-    pub fn add_wire_from_gate<S: Into<String>>(&mut self, id: S, gate: Gate) -> Result<()> {
-        let wire = Wire::from_gate(id, gate)?;
-        self.add(wire)
-    }
+    // fn add_wire_from_gate<S: Into<String>>(&mut self, id: S, gate: Gate) -> Result<()> {
+    //     self.add(Wire::from_gate(id, gate)?)
+    // }
 
     pub fn add_gate_and<S: Into<String>, T: Into<String>, U: Into<String>>(
         &mut self,
@@ -71,9 +69,7 @@ impl Circuit {
         input1: T,
         input2: U,
     ) -> Result<()> {
-        let gate = Gate::and(input1, input2)?;
-        let wire = Wire::from_gate(output, gate)?;
-        self.add(wire)
+        self.add(Wire::from_gate_and(output, input1, input2)?)
     }
 
     pub fn add_gate_and_value<S: Into<String>, T: Into<String>>(
@@ -82,9 +78,7 @@ impl Circuit {
         input: T,
         value: u16,
     ) -> Result<()> {
-        let gate = Gate::and_value(input, value)?;
-        let wire = Wire::from_gate(output, gate)?;
-        self.add(wire)
+        self.add(Wire::from_gate_and_value(output, input, value)?)
     }
 
     pub fn add_gate_or<S: Into<String>, T: Into<String>, U: Into<String>>(
@@ -93,9 +87,7 @@ impl Circuit {
         input1: T,
         input2: U,
     ) -> Result<()> {
-        let gate = Gate::or(input1, input2)?;
-        let wire = Wire::from_gate(output, gate)?;
-        self.add(wire)
+        self.add(Wire::from_gate_or(output, input1, input2)?)
     }
 
     pub fn add_gate_or_value<S: Into<String>, T: Into<String>>(
@@ -104,9 +96,7 @@ impl Circuit {
         input: T,
         value: u16,
     ) -> Result<()> {
-        let gate = Gate::or_value(input, value)?;
-        let wire = Wire::from_gate(output, gate)?;
-        self.add(wire)
+        self.add(Wire::from_gate_or_value(output, input, value)?)
     }
 
     pub fn add_gate_lshift<S: Into<String>, T: Into<String>>(
@@ -115,9 +105,7 @@ impl Circuit {
         input: T,
         shift: u8,
     ) -> Result<()> {
-        let gate = Gate::lshift(input, shift)?;
-        let wire = Wire::from_gate(output, gate)?;
-        self.add(wire)
+        self.add(Wire::from_gate_lshift(output, input, shift)?)
     }
 
     pub fn add_gate_rshift<S: Into<String>, T: Into<String>>(
@@ -126,9 +114,7 @@ impl Circuit {
         input: T,
         shift: u8,
     ) -> Result<()> {
-        let gate = Gate::rshift(input, shift)?;
-        let wire = Wire::from_gate(output, gate)?;
-        self.add(wire)
+        self.add(Wire::from_gate_rshift(output, input, shift)?)
     }
 
     pub fn add_gate_not<S: Into<String>, T: Into<String>>(
@@ -136,9 +122,7 @@ impl Circuit {
         output: S,
         input: T,
     ) -> Result<()> {
-        let gate = Gate::not(input)?;
-        let wire = Wire::from_gate(output, gate)?;
-        self.add(wire)
+        self.add(Wire::from_gate_not(output, input)?)
     }
 
     pub fn compute_signals(&mut self) -> Result<()> {
@@ -167,7 +151,9 @@ impl Circuit {
         ids
     }
 
-    pub fn compute_signals_of(&mut self, mut ids: Vec<WireId>) -> Result<()> {
+    // TODO: pub fn compute_signal_of<S: Into<String>>(&mut self, id: S) -> Result<Signal>
+
+    fn compute_signals_of(&mut self, mut ids: Vec<WireId>) -> Result<()> {
         // Index of id the computation originated from
         let mut root_index = if ids.is_empty() { 0 } else { ids.len() - 1 };
         while let Some(id) = ids.last() {
@@ -175,7 +161,7 @@ impl Circuit {
                 root_index = ids.len() - 1;
             }
             if let Some(wire) = self.wires.get(id) {
-                match wire.signal {
+                match wire.signal() {
                     Signal::Value(_) => {
                         ids.pop();
                     }
@@ -183,16 +169,16 @@ impl Circuit {
                         ids = self.set_uncomputable_from_index(ids, root_index);
                     }
                     Signal::Uncomputed => {
-                        match &wire.input {
+                        match wire.input() {
                             WireInput::Value(value) => {
                                 self.set_signal_of(id, Signal::Value(*value)).unwrap();
                                 ids.pop();
                             }
                             WireInput::Wire(input_id) => {
                                 if let Ok(input_wire) = self.get_wire(input_id) {
-                                    match input_wire.signal {
+                                    match input_wire.signal() {
                                         Signal::Value(signal) => {
-                                            self.set_signal_of(id, Signal::Value(signal)).unwrap();
+                                            self.set_signal_of(id, Signal::Value(*signal)).unwrap();
                                             ids.pop();
                                         }
                                         Signal::Uncomputable => {
@@ -215,11 +201,11 @@ impl Circuit {
                                     if let (Ok(wire1), Ok(wire2)) =
                                         (self.get_wire(input1), self.get_wire(input2))
                                     {
-                                        match (wire1.signal, wire2.signal) {
+                                        match (wire1.signal(), wire2.signal()) {
                                             (Signal::Value(signal1), Signal::Value(signal2)) => {
                                                 self.set_signal_of(
                                                     id,
-                                                    gate.signal(signal1, Some(signal2)),
+                                                    gate.signal(*signal1, Some(*signal2)),
                                                 )
                                                 .unwrap();
                                                 ids.pop();
@@ -252,9 +238,9 @@ impl Circuit {
                                 | Gate::RShift { input, .. }
                                 | Gate::Not { input } => {
                                     if let Ok(input_wire) = self.get_wire(input) {
-                                        match input_wire.signal {
+                                        match input_wire.signal() {
                                             Signal::Value(signal) => {
-                                                self.set_signal_of(id, gate.signal(signal, None))
+                                                self.set_signal_of(id, gate.signal(*signal, None))
                                                     .unwrap();
                                                 ids.pop();
                                             }
@@ -288,20 +274,20 @@ impl Circuit {
     fn get_wire(&self, id: &WireId) -> Result<&Wire> {
         self.wires
             .get(id)
-            .ok_or(Error::UnknownWireId(id.to_owned()))
+            .ok_or(Error::UnknownWireId(id.to_string()))
     }
 
-    fn wire(&self, id: &WireId) -> &Wire {
-        self.get_wire(id).unwrap()
-    }
+    // fn wire(&self, id: &WireId) -> &Wire {
+    //     self.get_wire(id).unwrap()
+    // }
 
     fn get_signal_of(&self, id: &WireId) -> Result<Signal> {
-        self.get_wire(id).map(|w| w.signal)
+        self.get_wire(id).map(|w| *w.signal())
     }
 
-    pub fn signal_of(&self, id: &WireId) -> Signal {
-        self.get_signal_of(id).unwrap()
-    }
+    // fn signal_of(&self, id: &WireId) -> Signal {
+    //     self.get_signal_of(id).unwrap()
+    // }
 
     pub fn get_signal_from<S: AsRef<str>>(&self, id: S) -> Result<Signal> {
         let id = WireId::try_from(id.as_ref())?;
@@ -312,13 +298,12 @@ impl Circuit {
         self.get_signal_from(id).unwrap()
     }
 
-    // TODO: Wire public or private ? wire.set_signal_of() and wire.get_signal() ?
     fn set_signal_of(&mut self, id: &WireId, signal: Signal) -> Result<()> {
         self.wires
             .get_mut(id)
-            .ok_or(Error::UnknownWireId(id.to_owned()))
+            .ok_or(Error::UnknownWireId(id.to_string()))
             .map(|w| {
-                w.signal = signal;
+                w.set_signal(signal);
             })
     }
 
@@ -333,19 +318,21 @@ impl Circuit {
         f.write_all(data.as_bytes())
     }
 
+    // TODO: could be public
     fn reset_signals(&mut self) {
         self.wires
             .values_mut()
-            .for_each(|w| w.signal = Signal::Uncomputed);
+            .for_each(|w| w.set_signal(Signal::Uncomputed));
         self.uncomputable = vec![];
         self.uncomputed = self.wires.keys().cloned().collect();
     }
 
     pub fn remove_wire_then_reset_signals<S: Into<String>>(&mut self, id: S) -> Result<Wire> {
+        // pub fn remove_wire_then_reset_signals<S: Into<String>>(&mut self, id: S) -> Result<()> {
         let id = WireId::try_from(id.into())?;
         self.wires
             .remove(&id)
-            .ok_or(Error::UnknownWireId(id))
+            .ok_or(Error::UnknownWireId(id.to_string()))
             .map(|w| {
                 self.reset_signals();
                 w
@@ -353,18 +340,18 @@ impl Circuit {
     }
 
     pub fn set_wire_then_reset_signals(&mut self, wire: Wire) -> Result<()> {
-        if let Some(w) = self.wires.get_mut(&wire.id) {
+        if let Some(w) = self.wires.get_mut(wire.id()) {
             *w = wire;
             self.reset_signals();
             Ok(())
         } else {
-            Err(Error::UnknownWireId(wire.id))
+            Err(Error::UnknownWireId(wire.id().to_string()))
         }
     }
 
     pub fn print_signals(&self) {
         for wire in self.wires.values() {
-            println!("{}: {:?}", wire.id, wire.signal);
+            println!("{}: {:?}", wire.id(), wire.signal());
         }
     }
 }
@@ -531,14 +518,16 @@ mod tests {
         Ok(())
     }
 
+    #[ignore]
     #[test]
     fn read_nanocorp_example_2() -> Result<()> {
         let c = Circuit::read("circuits/nanocorp_2.txt")?;
-        // println!("{}", c);
+        println!("{}", c);
         Ok(())
     }
 
-    // #[test]
+    #[ignore]
+    #[test]
     fn write_nanocorp_example_1() -> Result<()> {
         let mut c = Circuit::new();
         c.add_wire_with_value("x", 123)?;

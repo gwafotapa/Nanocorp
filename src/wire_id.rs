@@ -3,7 +3,7 @@ use std::fmt;
 use crate::error::{Error, Result};
 
 #[derive(Clone, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
-pub struct WireId(String);
+pub(crate) struct WireId(String);
 
 // impl WireId {
 // pub fn new<S: Into<String>>(id: S) -> Self {

@@ -1,3 +1,4 @@
+//TODO: gate and signal as submodules of wire, wire as submodule of circuit ?
 use std::fmt; // use crate::signal::Signal;
 
 use crate::{
@@ -8,7 +9,7 @@ use crate::{
 };
 
 #[derive(Clone, Debug, Eq, Hash, PartialEq)]
-pub enum WireInput {
+pub(crate) enum WireInput {
     Value(u16),
     Wire(WireId),
     Gate(Gate),
@@ -16,52 +17,63 @@ pub enum WireInput {
 
 #[derive(Clone, Debug, Eq, Hash, PartialEq)]
 pub struct Wire {
-    pub id: WireId,
-    pub input: WireInput,
-    pub signal: Signal, // TODO: should be private ?
+    id: WireId,
+    input: WireInput,
+    signal: Signal,
 }
 
 impl Wire {
-    pub fn new<S: Into<String>>(id: S, input: WireInput) -> Result<Self> {
-        match input {
-            WireInput::Value(value) => Self::with_value(id, value),
-            WireInput::Wire(input_id) => Self::from_wire(id, input_id.to_string()),
-            WireInput::Gate(gate) => Self::from_gate(id, gate),
+    pub(crate) fn id(&self) -> &WireId {
+        &self.id
+    }
+
+    pub(crate) fn input(&self) -> &WireInput {
+        &self.input
+    }
+
+    pub fn signal(&self) -> &Signal {
+        &self.signal
+    }
+
+    pub(crate) fn set_signal(&mut self, signal: Signal) {
+        self.signal = signal;
+    }
+
+    fn new(id: WireId, input: WireInput) -> Result<Self> {
+        match &input {
+            WireInput::Value(_) => {}
+            WireInput::Wire(input_id) => {
+                if &id == input_id {
+                    return Err(Error::InputMatchesOutput(id.to_string()));
+                }
+            }
+            WireInput::Gate(gate) => {
+                if gate.has_input(&id) {
+                    return Err(Error::InputMatchesOutput(id.to_string()));
+                }
+            }
         }
+        Ok(Self {
+            id,
+            input,
+            signal: Signal::default(),
+        })
     }
 
     pub fn with_value<S: Into<String>>(id: S, value: u16) -> Result<Self> {
         let id = WireId::try_from(id.into())?;
-        Ok(Self {
-            id,
-            input: WireInput::Value(value),
-            signal: Signal::Uncomputed,
-        })
+        Self::new(id, WireInput::Value(value))
     }
 
     pub fn from_wire<S: Into<String>, T: Into<String>>(id: S, input_id: T) -> Result<Self> {
         let id = WireId::try_from(id.into())?;
         let input_id = WireId::try_from(input_id.into())?;
-        if id == input_id {
-            return Err(Error::InputMatchesOutput(id));
-        }
-        Ok(Self {
-            id,
-            input: WireInput::Wire(input_id),
-            signal: Signal::Uncomputed,
-        })
+        Self::new(id, WireInput::Wire(input_id))
     }
 
-    pub fn from_gate<S: Into<String>>(id: S, gate: Gate) -> Result<Self> {
+    pub(crate) fn from_gate<S: Into<String>>(id: S, gate: Gate) -> Result<Self> {
         let id = WireId::try_from(id.into())?;
-        if gate.has_input(&id) {
-            return Err(Error::InputMatchesOutput(id));
-        }
-        Ok(Self {
-            id,
-            input: WireInput::Gate(gate),
-            signal: Signal::Uncomputed,
-        })
+        Self::new(id, WireInput::Gate(gate))
     }
 
     pub fn from_gate_and<S: Into<String>, T: Into<String>, U: Into<String>>(
@@ -69,8 +81,7 @@ impl Wire {
         input1: T,
         input2: U,
     ) -> Result<Self> {
-        let gate = Gate::and(input1, input2)?;
-        Wire::from_gate(id, gate)
+        Wire::from_gate(id, Gate::and(input1, input2)?)
     }
 
     pub fn from_gate_and_value<S: Into<String>, T: Into<String>>(
@@ -78,8 +89,7 @@ impl Wire {
         input: T,
         value: u16,
     ) -> Result<Self> {
-        let gate = Gate::and_value(input, value)?;
-        Wire::from_gate(id, gate)
+        Wire::from_gate(id, Gate::and_value(input, value)?)
     }
 
     pub fn from_gate_or<S: Into<String>, T: Into<String>, U: Into<String>>(
@@ -87,8 +97,7 @@ impl Wire {
         input1: T,
         input2: U,
     ) -> Result<Self> {
-        let gate = Gate::or(input1, input2)?;
-        Wire::from_gate(id, gate)
+        Wire::from_gate(id, Gate::or(input1, input2)?)
     }
 
     pub fn from_gate_or_value<S: Into<String>, T: Into<String>>(
@@ -96,8 +105,7 @@ impl Wire {
         input: T,
         value: u16,
     ) -> Result<Self> {
-        let gate = Gate::or_value(input, value)?;
-        Wire::from_gate(id, gate)
+        Wire::from_gate(id, Gate::or_value(input, value)?)
     }
 
     pub fn from_gate_lshift<S: Into<String>, T: Into<String>>(
@@ -105,8 +113,7 @@ impl Wire {
         input: T,
         shift: u8,
     ) -> Result<Self> {
-        let gate = Gate::lshift(input, shift)?;
-        Wire::from_gate(id, gate)
+        Wire::from_gate(id, Gate::lshift(input, shift)?)
     }
 
     pub fn from_gate_rshift<S: Into<String>, T: Into<String>>(
@@ -114,13 +121,11 @@ impl Wire {
         input: T,
         shift: u8,
     ) -> Result<Self> {
-        let gate = Gate::rshift(input, shift)?;
-        Wire::from_gate(id, gate)
+        Wire::from_gate(id, Gate::rshift(input, shift)?)
     }
 
     pub fn from_gate_not<S: Into<String>, T: Into<String>>(id: S, input: T) -> Result<Self> {
-        let gate = Gate::not(input)?;
-        Wire::from_gate(id, gate)
+        Wire::from_gate(id, Gate::not(input)?)
     }
 
     // pub fn compute_signal(&self) -> Signal {

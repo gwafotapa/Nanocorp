@@ -2,7 +2,7 @@ use std::{io, num, result};
 
 use thiserror;
 
-use crate::wire_id::WireId;
+// use crate::wire_id::WireId;
 
 pub type Result<T> = result::Result<T, Error>;
 
@@ -24,13 +24,13 @@ pub enum Error {
     ParseArrow(String),
 
     #[error("Circuit already has a wire whose id is '{0}'")]
-    WireIdAlreadyExists(WireId),
+    WireIdAlreadyExists(String),
 
     #[error("Circuit has no wire '{0}'")]
-    UnknownWireId(WireId),
+    UnknownWireId(String),
 
     #[error("Identical input and output ids '{0}'")]
-    InputMatchesOutput(WireId),
+    InputMatchesOutput(String),
 
     #[error(transparent)]
     InvalidPath(#[from] io::Error),

@@ -2,8 +2,8 @@ use std::{collections, mem};
 
 use crate::{
     circuit::Circuit,
-    gate::Gate,
-    wire::{Wire, WireInput},
+    // gate::Gate,
+    wire::Wire,
     wire_id::WireId,
 };
 
@@ -14,9 +14,7 @@ pub struct CircuitBuilder {
 
 impl CircuitBuilder {
     pub fn new() -> Self {
-        Self {
-            wires: collections::HashMap::new(),
-        }
+        Self::default()
     }
 
     pub fn build(&mut self) -> Circuit {
@@ -27,27 +25,26 @@ impl CircuitBuilder {
     }
 
     pub fn add(&mut self, wire: Wire) -> &mut CircuitBuilder {
-        self.wires.insert(wire.id.clone(), wire);
+        self.wires.insert(wire.id().to_owned(), wire);
         self
     }
 
-    pub fn add_wire_with_input<S: Into<String>>(
-        &mut self,
-        id: S,
-        input: WireInput,
-    ) -> &mut CircuitBuilder {
-        let wire = Wire::new(id, input).unwrap();
-        self.add(wire);
-        self
-    }
+    // pub fn add_wire_with_input<S: Into<String>>(
+    //     &mut self,
+    //     id: S,
+    //     input: WireInput,
+    // ) -> &mut CircuitBuilder {
+    //     let wire = Wire::new(id, input).unwrap();
+    //     self.add(wire);
+    //     self
+    // }
 
     pub fn add_wire_with_value<S: Into<String>>(
         &mut self,
         id: S,
         value: u16,
     ) -> &mut CircuitBuilder {
-        let wire = Wire::with_value(id, value).unwrap();
-        self.add(wire);
+        self.add(Wire::with_value(id, value).unwrap());
         self
     }
 
@@ -56,20 +53,15 @@ impl CircuitBuilder {
         id: S,
         input_id: T,
     ) -> &mut CircuitBuilder {
-        let wire = Wire::from_wire(id, input_id).unwrap();
-        self.add(wire);
+        self.add(Wire::from_wire(id, input_id).unwrap());
         self
     }
 
-    pub fn add_wire_from_gate<S: Into<String>>(
-        &mut self,
-        id: S,
-        gate: Gate,
-    ) -> &mut CircuitBuilder {
-        let wire = Wire::from_gate(id, gate).unwrap();
-        self.add(wire);
-        self
-    }
+    // fn add_wire_from_gate<S: Into<String>>(&mut self, id: S, gate: Gate) -> &mut CircuitBuilder {
+    //     let wire = Wire::from_gate(id, gate).unwrap();
+    //     self.add(wire);
+    //     self
+    // }
 
     pub fn add_gate_and<S: Into<String>, T: Into<String>, U: Into<String>>(
         &mut self,
@@ -77,8 +69,7 @@ impl CircuitBuilder {
         input1: T,
         input2: U,
     ) -> &mut CircuitBuilder {
-        let wire = Wire::from_gate_and(output, input1, input2).unwrap();
-        self.add(wire);
+        self.add(Wire::from_gate_and(output, input1, input2).unwrap());
         self
     }
 
@@ -88,8 +79,7 @@ impl CircuitBuilder {
         input: T,
         value: u16,
     ) -> &mut CircuitBuilder {
-        let wire = Wire::from_gate_and_value(output, input, value).unwrap();
-        self.add(wire);
+        self.add(Wire::from_gate_and_value(output, input, value).unwrap());
         self
     }
 
@@ -99,8 +89,7 @@ impl CircuitBuilder {
         input1: T,
         input2: U,
     ) -> &mut CircuitBuilder {
-        let wire = Wire::from_gate_or(output, input1, input2).unwrap();
-        self.add(wire);
+        self.add(Wire::from_gate_or(output, input1, input2).unwrap());
         self
     }
 
@@ -110,8 +99,7 @@ impl CircuitBuilder {
         input: T,
         value: u16,
     ) -> &mut CircuitBuilder {
-        let wire = Wire::from_gate_or_value(output, input, value).unwrap();
-        self.add(wire);
+        self.add(Wire::from_gate_or_value(output, input, value).unwrap());
         self
     }
 
@@ -121,8 +109,7 @@ impl CircuitBuilder {
         input: T,
         shift: u8,
     ) -> &mut CircuitBuilder {
-        let wire = Wire::from_gate_lshift(output, input, shift).unwrap();
-        self.add(wire);
+        self.add(Wire::from_gate_lshift(output, input, shift).unwrap());
         self
     }
 
@@ -132,8 +119,7 @@ impl CircuitBuilder {
         input: T,
         shift: u8,
     ) -> &mut CircuitBuilder {
-        let wire = Wire::from_gate_rshift(output, input, shift).unwrap();
-        self.add(wire);
+        self.add(Wire::from_gate_rshift(output, input, shift).unwrap());
         self
     }
 
@@ -142,8 +128,7 @@ impl CircuitBuilder {
         output: S,
         input: T,
     ) -> &mut CircuitBuilder {
-        let gate = Wire::from_gate_not(output, input).unwrap();
-        self.add(gate);
+        self.add(Wire::from_gate_not(output, input).unwrap());
         self
     }
 }
