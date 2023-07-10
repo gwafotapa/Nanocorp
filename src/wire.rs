@@ -1,4 +1,4 @@
-use std::{fmt, ops::Deref}; // use crate::signal::Signal;
+use std::fmt; // use crate::signal::Signal;
 
 use crate::{
     error::{Error, Result},
@@ -22,21 +22,10 @@ pub struct Wire {
 }
 
 impl Wire {
-    // pub fn no_input(id: S) -> Result<Self> {
-    //     let id = id.into();
-    //     id.bytes().all(|b| b.is_ascii_lowercase()).then_some(Self {
-    //         id,
-    //         input: None,
-    //         signal: Uncomputed,
-    //     })
-    // }
-
     pub fn new<S: Into<String>>(id: S, input: WireInput) -> Result<Self> {
         match input {
-            // None => Self::no_input(id),
             WireInput::Value(value) => Self::with_value(id, value),
-            // TODO: deref, as_ref or borrow ?
-            WireInput::Wire(input_id) => Self::from_wire(id, input_id.deref()),
+            WireInput::Wire(input_id) => Self::from_wire(id, input_id.to_string()),
             WireInput::Gate(gate) => Self::from_gate(id, gate),
         }
     }
@@ -103,7 +92,6 @@ impl Wire {
     }
 
     pub fn from_gate_or_value<S: Into<String>, T: Into<String>>(
-        // TODO: test
         id: S,
         input: T,
         value: u16,

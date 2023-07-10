@@ -317,9 +317,8 @@ impl Circuit {
         self.wires
             .get_mut(id)
             .ok_or(Error::UnknownWireId(id.to_owned()))
-            .and_then(|w| {
+            .map(|w| {
                 w.signal = signal;
-                Ok(())
             })
     }
 
@@ -396,23 +395,6 @@ impl TryFrom<&str> for Circuit {
         Ok(circuit)
     }
 }
-
-// TODO: Is this reasonable ?
-impl PartialEq for Circuit {
-    fn eq(&self, other: &Self) -> bool {
-        self.wires == other.wires
-    }
-}
-
-// https://stackoverflow.com/questions/46766560/how-to-check-if-there-are-duplicates-in-a-slice
-// fn has_duplicate_elements<T>(iter: T) -> bool
-// where
-//     T: IntoIterator,
-//     T::Item: Eq + Hash,
-// {
-//     let mut uniq = HashSet::new();
-//     iter.into_iter().any(move |x| !uniq.insert(x))
-// }
 
 #[cfg(test)]
 mod tests {
@@ -545,7 +527,7 @@ mod tests {
         c2.add_gate_not("h", "x")?;
         c2.add_gate_not("i", "y")?;
 
-        assert_eq!(c1, c2);
+        assert_eq!(c1.wires, c2.wires);
         Ok(())
     }
 

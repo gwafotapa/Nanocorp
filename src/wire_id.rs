@@ -1,4 +1,4 @@
-use std::{fmt, ops};
+use std::fmt;
 
 use crate::error::{Error, Result};
 
@@ -35,6 +35,12 @@ impl TryFrom<&str> for WireId {
     }
 }
 
+impl From<WireId> for String {
+    fn from(w: WireId) -> Self {
+        w.to_string()
+    }
+}
+
 // impl From<&WireId> for WireId {
 //     fn from(id: &Self) -> Self {
 //         Self(id.0.to_string())
@@ -52,14 +58,6 @@ impl TryFrom<&str> for WireId {
 //         &WireId(self.to_string())
 //     }
 // }
-
-impl ops::Deref for WireId {
-    type Target = String;
-
-    fn deref(&self) -> &Self::Target {
-        &self.0
-    }
-}
 
 impl fmt::Display for WireId {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
