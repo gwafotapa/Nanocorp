@@ -195,62 +195,153 @@ mod tests {
 
     #[test]
     fn wire_id() {
-        assert!(Wire::from_wire("", "w").is_err());
-        assert!(Wire::from_wire("w", "").is_err());
-        assert!(Wire::with_value("A", 3).is_err());
-        assert!(Wire::from_wire("a", "2").is_err());
-        assert!(Wire::with_value("2", 2).is_err());
-        assert!(Wire::with_value("nano corp", 9).is_err());
+        assert!(matches!(
+            Wire::from_wire("", "w"),
+            Err(Error::InvalidWireId(_))
+        ));
+        assert!(matches!(
+            Wire::from_wire("w", ""),
+            Err(Error::InvalidWireId(_))
+        ));
+        assert!(matches!(
+            Wire::with_value("A", 3),
+            Err(Error::InvalidWireId(_))
+        ));
+        assert!(matches!(
+            Wire::from_wire("a", "2"),
+            Err(Error::InvalidWireId(_))
+        ));
+        assert!(matches!(
+            Wire::with_value("2", 2),
+            Err(Error::InvalidWireId(_))
+        ));
+        assert!(matches!(
+            Wire::with_value("nano corp", 9),
+            Err(Error::InvalidWireId(_))
+        ));
+        assert!(matches!(
+            Wire::with_value("wire!", 2),
+            Err(Error::InvalidWireId(_))
+        ));
+        assert!(matches!(
+            Wire::with_value("z\n", 0),
+            Err(Error::InvalidWireId(_))
+        ));
+        assert!(matches!(
+            Wire::try_from("1 ->  -> b"),
+            Err(Error::InvalidWireId(_))
+        ));
+        assert!(matches!(
+            Wire::try_from("a -> b -> c"),
+            Err(Error::InvalidWireId(_))
+        ));
+        assert!(matches!(
+            Wire::try_from(" -> w"),
+            Err(Error::InvalidWireId(_))
+        ));
+        assert!(matches!(
+            Wire::try_from("NOT -> w"),
+            Err(Error::InvalidWireId(_))
+        ));
+
         assert!(Wire::with_value("nanocorp", 9).is_ok());
         assert!(Wire::from_wire("nano", "corp").is_ok());
-        assert!(Wire::with_value("wire!", 2).is_err());
-        assert!(Wire::with_value("z\n", 0).is_err());
     }
 
     #[test]
     fn shift_amount() {
         assert!(Wire::from_gate_lshift("lshift", "w", 0).is_ok());
         assert!(Wire::from_gate_rshift("rshift", "w", 15).is_ok());
-        assert!(Wire::from_gate_rshift("rshift", "w", 16).is_err());
+        assert!(Wire::try_from("a LSHIFT 0 -> w").is_ok());
+        assert!(Wire::try_from("a RSHIFT 15 -> w").is_ok());
+        assert!(matches!(
+            Wire::from_gate_rshift("rshift", "w", 16),
+            Err(Error::TooLargeShift(16))
+        ));
+        assert!(matches!(
+            Wire::try_from("a LSHIFT 16 -> w"),
+            Err(Error::TooLargeShift(16))
+        ));
     }
 
     #[test]
     fn parse_gate() {
-        assert!(Wire::try_from(" -> w").is_err());
-        assert!(Wire::try_from("NOT -> w").is_err());
-        assert!(Wire::try_from("a AND NOT b -> w").is_err());
-        assert!(Wire::try_from("a OR -> w").is_err());
-        assert!(Wire::try_from("a NOT b -> w").is_err());
+        assert!(matches!(
+            Wire::try_from("a AND NOT b -> w"),
+            Err(Error::ParseGate(_))
+        ));
+        assert!(matches!(
+            Wire::try_from("a OR -> w"),
+            Err(Error::ParseGate(_))
+        ));
+        assert!(matches!(
+            Wire::try_from("a NOT b -> w"),
+            Err(Error::ParseGate(_))
+        ));
     }
 
     #[test]
     fn parse_shift() {
-        assert!(Wire::try_from("a LSHIFT 0 -> w").is_ok());
-        assert!(Wire::try_from("a RSHIFT 15 -> w").is_ok());
-        assert!(Wire::try_from("a LSHIFT 16 -> w").is_err());
-        assert!(Wire::try_from("a RSHIFT a -> w").is_err());
+        assert!(matches!(
+            Wire::try_from("a RSHIFT b -> w"),
+            Err(Error::ParseShift(_))
+        ));
+        assert!(matches!(
+            Wire::try_from("a RSHIFT -2 -> w"),
+            Err(Error::ParseShift(_))
+        ));
     }
 
     #[test]
     fn parse_arrow() {
-        assert!(Wire::try_from("x-> w").is_err());
-        assert!(Wire::try_from("x ->w").is_err());
-        assert!(Wire::try_from("1 ->  -> b").is_err());
-        assert!(Wire::try_from("a -> b -> c").is_err());
+        assert!(matches!(Wire::try_from(""), Err(Error::ParseArrow(_))));
+        assert!(matches!(Wire::try_from("x w"), Err(Error::ParseArrow(_))));
+        assert!(matches!(Wire::try_from("x-> w"), Err(Error::ParseArrow(_))));
+        assert!(matches!(Wire::try_from("x ->w"), Err(Error::ParseArrow(_))));
     }
 
     #[test]
-    fn output_equals_input() {
-        assert!(Wire::from_wire("w", "w").is_err());
-        assert!(Wire::from_gate_and("w", "w", "x").is_err());
-        assert!(Wire::from_gate_and("w", "x", "w").is_err());
-        assert!(Wire::from_gate_or("w", "w", "x").is_err());
-        assert!(Wire::from_gate_or("w", "x", "w").is_err());
-        assert!(Wire::from_gate_and_value("w", "w", 1).is_err());
-        assert!(Wire::from_gate_or_value("w", "w", 1).is_err());
-        assert!(Wire::from_gate_lshift("w", "w", 1).is_err());
-        assert!(Wire::from_gate_rshift("w", "w", 1).is_err());
-        assert!(Wire::from_gate_not("w", "w").is_err());
+    fn input_matches_output() {
+        assert!(matches!(
+            Wire::from_wire("w", "w"),
+            Err(Error::InputMatchesOutput(_))
+        ));
+        assert!(matches!(
+            Wire::from_gate_and("w", "w", "x"),
+            Err(Error::InputMatchesOutput(_))
+        ));
+        assert!(matches!(
+            Wire::from_gate_and("w", "x", "w"),
+            Err(Error::InputMatchesOutput(_))
+        ));
+        assert!(matches!(
+            Wire::from_gate_or("w", "w", "x"),
+            Err(Error::InputMatchesOutput(_))
+        ));
+        assert!(matches!(
+            Wire::from_gate_or("w", "x", "w"),
+            Err(Error::InputMatchesOutput(_))
+        ));
+        assert!(matches!(
+            Wire::from_gate_and_value("w", "w", 1),
+            Err(Error::InputMatchesOutput(_))
+        ));
+        assert!(matches!(
+            Wire::from_gate_or_value("w", "w", 1),
+            Err(Error::InputMatchesOutput(_))
+        ));
+        assert!(matches!(
+            Wire::from_gate_lshift("w", "w", 1),
+            Err(Error::InputMatchesOutput(_))
+        ));
+        assert!(matches!(
+            Wire::from_gate_rshift("w", "w", 1),
+            Err(Error::InputMatchesOutput(_))
+        ));
+        assert!(matches!(
+            Wire::from_gate_not("w", "w"),
+            Err(Error::InputMatchesOutput(_))
+        ));
     }
 
     #[test]
