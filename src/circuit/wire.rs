@@ -1,20 +1,18 @@
-//TODO: gate and signal as submodules of wire, wire as submodule of circuit ?
-use std::fmt; // use crate::signal::Signal;
+// TODO: https://www.reddit.com/r/rust/comments/wwbxhw/how_do_you_organize_imports_reexports_structs
+pub(crate) mod gate;
+pub mod signal;
+pub(crate) mod wire_id;
+pub(crate) mod wire_input;
 
-use crate::{
-    error::{Error, Result},
-    gate::Gate,
-    signal::Signal,
-    wire_id::WireId,
-};
+use std::fmt::{self, Display, Formatter};
 
-#[derive(Clone, Debug, Eq, Hash, PartialEq)]
-pub(crate) enum WireInput {
-    Value(u16),
-    Wire(WireId),
-    Gate(Gate),
-}
+use crate::error::{Error, Result};
+use gate::Gate;
+use signal::Signal;
+use wire_id::WireId;
+use wire_input::WireInput;
 
+// TODO: should it be public ?
 #[derive(Clone, Debug, Eq, Hash, PartialEq)]
 pub struct Wire {
     id: WireId,
@@ -157,22 +155,6 @@ impl Wire {
 //     }
 // }
 
-impl fmt::Display for Wire {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match &self.input {
-            WireInput::Value(value) => {
-                write!(f, "{} -> {}", value, self.id)
-            }
-            WireInput::Wire(input_id) => {
-                write!(f, "{} -> {}", input_id, self.id)
-            }
-            WireInput::Gate(gate) => {
-                write!(f, "{} -> {}", gate, self.id)
-            }
-        }
-    }
-}
-
 impl TryFrom<&str> for Wire {
     type Error = Error;
 
@@ -190,6 +172,22 @@ impl TryFrom<&str> for Wire {
                 }
             }
             _ => Wire::from_gate(output, Gate::try_from(input)?),
+        }
+    }
+}
+
+impl Display for Wire {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        match &self.input {
+            WireInput::Value(value) => {
+                write!(f, "{} -> {}", value, self.id)
+            }
+            WireInput::Wire(input_id) => {
+                write!(f, "{} -> {}", input_id, self.id)
+            }
+            WireInput::Gate(gate) => {
+                write!(f, "{} -> {}", gate, self.id)
+            }
         }
     }
 }

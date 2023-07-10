@@ -1,8 +1,6 @@
-use std::{io, num, result};
+use std::{io, num::ParseIntError, result};
 
 use thiserror;
-
-// use crate::wire_id::WireId;
 
 pub type Result<T> = result::Result<T, Error>;
 
@@ -18,7 +16,7 @@ pub enum Error {
     ParseGate(String),
 
     #[error("Cannot parse gate shift from string '{0}'")]
-    ParseShift(#[from] num::ParseIntError),
+    ParseShift(#[from] ParseIntError),
 
     #[error("String {0} has no arrow ' -> '")]
     ParseArrow(String),

@@ -1,15 +1,13 @@
-use std::{collections, mem};
+use std::{collections::HashMap, mem};
 
-use crate::{
-    circuit::Circuit,
-    // gate::Gate,
-    wire::Wire,
-    wire_id::WireId,
+use super::{
+    wire::{wire_id::WireId, Wire},
+    Circuit,
 };
 
 #[derive(Clone, Debug, Default)]
 pub struct CircuitBuilder {
-    wires: collections::HashMap<WireId, Wire>,
+    wires: HashMap<WireId, Wire>,
 }
 
 impl CircuitBuilder {
@@ -136,7 +134,7 @@ impl CircuitBuilder {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::signal::Signal;
+    use crate::circuit::wire::signal::Signal;
 
     #[test]
     fn one_liner() {

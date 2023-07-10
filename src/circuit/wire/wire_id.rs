@@ -1,4 +1,4 @@
-use std::fmt;
+use std::fmt::{self, Display, Formatter};
 
 use crate::error::{Error, Result};
 
@@ -15,6 +15,14 @@ pub(crate) struct WireId(String);
 // }
 // }
 
+impl TryFrom<&str> for WireId {
+    type Error = Error;
+
+    fn try_from(s: &str) -> Result<Self> {
+        Self::try_from(String::from(s))
+    }
+}
+
 impl TryFrom<String> for WireId {
     type Error = Error;
 
@@ -24,14 +32,6 @@ impl TryFrom<String> for WireId {
         } else {
             Err(Error::InvalidWireId(s))
         }
-    }
-}
-
-impl TryFrom<&str> for WireId {
-    type Error = Error;
-
-    fn try_from(s: &str) -> Result<Self> {
-        Self::try_from(String::from(s))
     }
 }
 
@@ -59,8 +59,8 @@ impl From<WireId> for String {
 //     }
 // }
 
-impl fmt::Display for WireId {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+impl Display for WireId {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         write!(f, "{}", self.0)
     }
 }

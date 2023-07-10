@@ -1,10 +1,7 @@
-use std::fmt;
+use std::fmt::{self, Display, Formatter};
 
-use crate::{
-    error::{Error, Result},
-    signal::Signal,
-    wire_id::WireId,
-};
+use super::{signal::Signal, wire_id::WireId};
+use crate::error::{Error, Result};
 
 #[derive(Clone, Debug, Eq, Hash, PartialEq)]
 pub(crate) enum Gate {
@@ -88,34 +85,6 @@ impl Gate {
     }
 }
 
-impl fmt::Display for Gate {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
-            Gate::And { input1, input2 } => {
-                write!(f, "{} AND {}", input1, input2)
-            }
-            Gate::AndValue { input, value } => {
-                write!(f, "{} AND {}", input, value)
-            }
-            Gate::Or { input1, input2 } => {
-                write!(f, "{} OR {}", input1, input2)
-            }
-            Gate::OrValue { input, value } => {
-                write!(f, "{} OR {}", input, value)
-            }
-            Gate::LShift { input, shift } => {
-                write!(f, "{} LSHIFT {}", input, shift)
-            }
-            Gate::RShift { input, shift } => {
-                write!(f, "{} RSHIFT {}", input, shift)
-            }
-            Gate::Not { input } => {
-                write!(f, "NOT {}", input)
-            }
-        }
-    }
-}
-
 impl TryFrom<&str> for Gate {
     type Error = Error;
 
@@ -153,6 +122,34 @@ impl TryFrom<&str> for Gate {
                 _ => Err(Error::ParseGate(s.to_string())),
             },
             _ => Err(Error::ParseGate(s.to_string())),
+        }
+    }
+}
+
+impl Display for Gate {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        match self {
+            Gate::And { input1, input2 } => {
+                write!(f, "{} AND {}", input1, input2)
+            }
+            Gate::AndValue { input, value } => {
+                write!(f, "{} AND {}", input, value)
+            }
+            Gate::Or { input1, input2 } => {
+                write!(f, "{} OR {}", input1, input2)
+            }
+            Gate::OrValue { input, value } => {
+                write!(f, "{} OR {}", input, value)
+            }
+            Gate::LShift { input, shift } => {
+                write!(f, "{} LSHIFT {}", input, shift)
+            }
+            Gate::RShift { input, shift } => {
+                write!(f, "{} RSHIFT {}", input, shift)
+            }
+            Gate::Not { input } => {
+                write!(f, "NOT {}", input)
+            }
         }
     }
 }

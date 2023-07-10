@@ -1,25 +1,24 @@
+pub mod circuit_builder;
+pub mod wire;
+
 use std::{
-    collections, fmt, fs,
+    collections::HashMap,
+    fmt::{self, Display, Formatter},
+    fs::{self, File},
     io::{self, Write},
-    mem, path,
+    mem,
+    path::Path,
 };
 
-use crate::{
-    error::{Error, Result},
-    gate::Gate,
-    signal::Signal,
-    wire::{Wire, WireInput},
-    wire_id::WireId,
-};
+use crate::error::{Error, Result};
+use wire::{gate::Gate, signal::Signal, wire_id::WireId, wire_input::WireInput, Wire};
 
 #[derive(Clone, Debug, Default)]
 pub struct Circuit {
-    wires: collections::HashMap<WireId, Wire>,
+    wires: HashMap<WireId, Wire>,
     uncomputed: Vec<WireId>,
     uncomputable: Vec<WireId>,
 }
-
-pub mod circuit_builder;
 
 impl Circuit {
     //
@@ -151,7 +150,12 @@ impl Circuit {
         ids
     }
 
-    // TODO: pub fn compute_signal_of<S: Into<String>>(&mut self, id: S) -> Result<Signal>
+    // TODO: Need testing
+    pub fn compute_signal_from<S: Into<String>>(&mut self, id: S) -> Result<Signal> {
+        let id = WireId::try_from(id.into())?;
+        self.compute_signals_of(vec![id.clone()])?;
+        self.get_signal_of(&id)
+    }
 
     fn compute_signals_of(&mut self, mut ids: Vec<WireId>) -> Result<()> {
         // Index of id the computation originated from
@@ -307,18 +311,17 @@ impl Circuit {
             })
     }
 
-    pub fn read<P: AsRef<path::Path>>(path: P) -> Result<Self> {
+    pub fn read<P: AsRef<Path>>(path: P) -> Result<Self> {
         let s = fs::read_to_string(path)?;
         Self::try_from(s.as_str())
     }
 
-    pub fn write<P: AsRef<path::Path>>(&self, path: P) -> io::Result<()> {
+    pub fn write<P: AsRef<Path>>(&self, path: P) -> io::Result<()> {
         let data = self.to_string();
-        let mut f = fs::File::create(path)?;
+        let mut f = File::create(path)?;
         f.write_all(data.as_bytes())
     }
 
-    // TODO: could be public
     fn reset_signals(&mut self) {
         self.wires
             .values_mut()
@@ -362,15 +365,6 @@ impl Circuit {
 //     }
 // }
 
-impl fmt::Display for Circuit {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        for wire in self.wires.values() {
-            writeln!(f, "{}", wire)?
-        }
-        Ok(())
-    }
-}
-
 impl TryFrom<&str> for Circuit {
     type Error = Error;
 
@@ -380,6 +374,15 @@ impl TryFrom<&str> for Circuit {
             circuit.add(wire.try_into()?)?
         }
         Ok(circuit)
+    }
+}
+
+impl Display for Circuit {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        for wire in self.wires.values() {
+            writeln!(f, "{}", wire)?
+        }
+        Ok(())
     }
 }
 
