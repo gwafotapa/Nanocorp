@@ -133,6 +133,8 @@ impl TryFrom<&str> for Wire {
             1 => {
                 if let Ok(value) = inputs[0].parse::<u16>() {
                     Wire::with_value(output, value)
+                } else if let Ok(value) = inputs[0].parse::<u64>() {
+                    Err(Error::TooLargeValue(value))
                 } else {
                     Wire::from_wire(output, inputs[0])
                 }
@@ -218,6 +220,15 @@ mod tests {
     }
 
     #[test]
+    fn signal_value() {
+        assert!(Wire::try_from("65535 -> w").is_ok());
+        assert!(matches!(
+            Wire::try_from("65536 -> w"),
+            Err(Error::TooLargeValue(65536))
+        ));
+    }
+
+    #[test]
     fn shift_amount() {
         assert!(Wire::from_gate_lshift("lshift", "w", 0).is_ok());
         assert!(Wire::from_gate_rshift("rshift", "w", 15).is_ok());
@@ -272,7 +283,7 @@ mod tests {
     #[test]
     fn input_matches_output() {
         assert!(matches!(
-            Wire::from_wire("w", "w"),
+            Wire::try_from("w -> w"),
             Err(Error::InputMatchesOutput(_))
         ));
         assert!(matches!(
@@ -292,11 +303,11 @@ mod tests {
             Err(Error::InputMatchesOutput(_))
         ));
         assert!(matches!(
-            Wire::from_gate_and_value("w", "w", 1),
+            Wire::try_from("w AND 1 -> w"),
             Err(Error::InputMatchesOutput(_))
         ));
         assert!(matches!(
-            Wire::from_gate_or_value("w", "w", 1),
+            Wire::try_from("1 OR w -> w"),
             Err(Error::InputMatchesOutput(_))
         ));
         assert!(matches!(
@@ -314,53 +325,54 @@ mod tests {
     }
 
     #[test]
-    fn try_from() {
-        let w1 = Wire::try_from("456 -> y").unwrap();
-        let w2 = Wire::with_value("y", 456).unwrap();
+    fn try_from() -> Result<()> {
+        let w1 = Wire::try_from("456 -> y")?;
+        let w2 = Wire::with_value("y", 456)?;
         assert_eq!(w1.id, w2.id);
         assert_eq!(w1.input, w2.input);
         assert_eq!(w1.signal, w2.signal);
 
-        let w1 = Wire::try_from("x LSHIFT 2 -> f").unwrap();
-        let w2 = Wire::from_gate_lshift("f", "x", 2).unwrap();
+        let w1 = Wire::try_from("x LSHIFT 2 -> f")?;
+        let w2 = Wire::from_gate_lshift("f", "x", 2)?;
         assert_eq!(w1.id, w2.id);
         assert_eq!(w1.input, w2.input);
         assert_eq!(w1.signal, w2.signal);
 
-        let w1 = Wire::try_from("NOT x -> h").unwrap();
-        let w2 = Wire::from_gate_not("h", "x").unwrap();
+        let w1 = Wire::try_from("NOT x -> h")?;
+        let w2 = Wire::from_gate_not("h", "x")?;
         assert_eq!(w1.id, w2.id);
         assert_eq!(w1.input, w2.input);
         assert_eq!(w1.signal, w2.signal);
 
-        let w1 = Wire::try_from("x OR y -> e").unwrap();
-        let w2 = Wire::from_gate_or("e", "x", "y").unwrap();
+        let w1 = Wire::try_from("x OR y -> e")?;
+        let w2 = Wire::from_gate_or("e", "x", "y")?;
         assert_eq!(w1.id, w2.id);
         assert_eq!(w1.input, w2.input);
         assert_eq!(w1.signal, w2.signal);
 
-        let w1 = Wire::try_from("y RSHIFT 2 -> g").unwrap();
-        let w2 = Wire::from_gate_rshift("g", "y", 2).unwrap();
+        let w1 = Wire::try_from("y RSHIFT 2 -> g")?;
+        let w2 = Wire::from_gate_rshift("g", "y", 2)?;
         assert_eq!(w1.id, w2.id);
         assert_eq!(w1.input, w2.input);
         assert_eq!(w1.signal, w2.signal);
 
-        let w1 = Wire::try_from("NOT y -> i").unwrap();
-        let w2 = Wire::from_gate_not("i", "y").unwrap();
+        let w1 = Wire::try_from("NOT y -> i")?;
+        let w2 = Wire::from_gate_not("i", "y")?;
         assert_eq!(w1.id, w2.id);
         assert_eq!(w1.input, w2.input);
         assert_eq!(w1.signal, w2.signal);
 
-        let w1 = Wire::try_from("123 -> x").unwrap();
-        let w2 = Wire::with_value("x", 123).unwrap();
+        let w1 = Wire::try_from("123 -> x")?;
+        let w2 = Wire::with_value("x", 123)?;
         assert_eq!(w1.id, w2.id);
         assert_eq!(w1.input, w2.input);
         assert_eq!(w1.signal, w2.signal);
 
-        let w1 = Wire::try_from("x AND y -> d").unwrap();
-        let w2 = Wire::from_gate_and("d", "x", "y").unwrap();
+        let w1 = Wire::try_from("x AND y -> d")?;
+        let w2 = Wire::from_gate_and("d", "x", "y")?;
         assert_eq!(w1.id, w2.id);
         assert_eq!(w1.input, w2.input);
         assert_eq!(w1.signal, w2.signal);
+        Ok(())
     }
 }

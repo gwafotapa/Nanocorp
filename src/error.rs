@@ -9,6 +9,9 @@ pub enum Error {
     #[error("Wire id '{0}' is not ascii lowercase")]
     InvalidWireId(String),
 
+    #[error("Type u16 cannot represent value '{0}'")]
+    TooLargeValue(u64),
+
     #[error("Identical input and output ids '{0}'")]
     InputMatchesOutput(String),
 

@@ -1,5 +1,5 @@
 pub mod circuit_builder;
-mod wire;
+pub mod wire;
 
 use std::{
     collections::HashMap,
