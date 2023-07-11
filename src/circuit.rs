@@ -1,5 +1,9 @@
+#[doc(hidden)]
 pub mod circuit_builder;
-pub mod wire;
+mod wire;
+
+pub use circuit_builder::CircuitBuilder;
+pub use wire::signal::Signal;
 
 use std::{
     collections::HashMap,
@@ -11,7 +15,7 @@ use std::{
 };
 
 use crate::error::{Error, Result};
-use wire::{gate::Gate, signal::Signal, wire_id::WireId, wire_input::WireInput, Wire};
+use wire::{gate::Gate, wire_id::WireId, wire_input::WireInput, Wire};
 
 #[derive(Clone, Debug, Default)]
 pub struct Circuit {

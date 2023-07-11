@@ -1,4 +1,4 @@
-use circuit::{circuit::Circuit, error::Error};
+use circuitry::{circuit::Circuit, error::Error};
 
 #[test]
 fn try_from_nanocorp_example_2() -> Result<(), Error> {
