@@ -1,8 +1,7 @@
-// TODO: https://www.reddit.com/r/rust/comments/wwbxhw/how_do_you_organize_imports_reexports_structs
-pub(crate) mod gate;
+pub(super) mod gate;
 pub mod signal;
-pub(crate) mod wire_id;
-pub(crate) mod wire_input;
+pub(super) mod wire_id;
+pub(super) mod wire_input;
 
 use std::fmt::{self, Display, Formatter};
 
@@ -12,31 +11,14 @@ use signal::Signal;
 use wire_id::WireId;
 use wire_input::WireInput;
 
-// TODO: should it be public ?
-#[derive(Clone, Debug, Eq, Hash, PartialEq)]
-pub struct Wire {
+#[derive(Clone, Debug)]
+pub(super) struct Wire {
     id: WireId,
     input: WireInput,
     signal: Signal,
 }
 
 impl Wire {
-    pub(crate) fn id(&self) -> &WireId {
-        &self.id
-    }
-
-    pub(crate) fn input(&self) -> &WireInput {
-        &self.input
-    }
-
-    pub fn signal(&self) -> &Signal {
-        &self.signal
-    }
-
-    pub(crate) fn set_signal(&mut self, signal: Signal) {
-        self.signal = signal;
-    }
-
     fn new(id: WireId, input: WireInput) -> Result<Self> {
         match &input {
             WireInput::Value(_) => {}
@@ -59,19 +41,15 @@ impl Wire {
     }
 
     pub fn with_value<S: Into<String>>(id: S, value: u16) -> Result<Self> {
-        let id = WireId::try_from(id.into())?;
-        Self::new(id, WireInput::Value(value))
+        Self::new(WireId::new(id)?, WireInput::Value(value))
     }
 
     pub fn from_wire<S: Into<String>, T: Into<String>>(id: S, input_id: T) -> Result<Self> {
-        let id = WireId::try_from(id.into())?;
-        let input_id = WireId::try_from(input_id.into())?;
-        Self::new(id, WireInput::Wire(input_id))
+        Self::new(WireId::new(id)?, WireInput::Wire(WireId::new(input_id)?))
     }
 
     pub(crate) fn from_gate<S: Into<String>>(id: S, gate: Gate) -> Result<Self> {
-        let id = WireId::try_from(id.into())?;
-        Self::new(id, WireInput::Gate(gate))
+        Self::new(WireId::new(id)?, WireInput::Gate(gate))
     }
 
     pub fn from_gate_and<S: Into<String>, T: Into<String>, U: Into<String>>(
@@ -126,34 +104,22 @@ impl Wire {
         Wire::from_gate(id, Gate::not(input)?)
     }
 
-    // pub fn compute_signal(&self) -> Signal {
-    //     if let Some(input) = self.input {
-    //         match input {
-    //             WireInput::Value(value) => Some(value),
-    //             WireInput::Wire(wire) => {
-    //                 wire.compute_signal();
-    //                 wire.signal
-    //             }
-    //         }
-    //     } else {
-    //         None
-    //     }
-    // }
+    pub(super) fn id(&self) -> &WireId {
+        &self.id
+    }
 
-    // pub fn set_signal(&mut self, value: u16) {
-    //     self.signal = Some(value);
-    // }
+    pub(super) fn input(&self) -> &WireInput {
+        &self.input
+    }
 
-    // fn get_signal(&self) -> Signal {
-    //     self.signal
-    // }
+    pub fn signal(&self) -> &Signal {
+        &self.signal
+    }
+
+    pub(super) fn set_signal(&mut self, signal: Signal) {
+        self.signal = signal;
+    }
 }
-
-// impl PartialEq for Wire {
-//     fn eq(&self, other: &Self) -> bool {
-//         self.id == other.id
-//     }
-// }
 
 impl TryFrom<&str> for Wire {
     type Error = Error;
@@ -351,34 +317,50 @@ mod tests {
     fn try_from() {
         let w1 = Wire::try_from("456 -> y").unwrap();
         let w2 = Wire::with_value("y", 456).unwrap();
-        assert_eq!(w1, w2);
+        assert_eq!(w1.id, w2.id);
+        assert_eq!(w1.input, w2.input);
+        assert_eq!(w1.signal, w2.signal);
 
         let w1 = Wire::try_from("x LSHIFT 2 -> f").unwrap();
         let w2 = Wire::from_gate_lshift("f", "x", 2).unwrap();
-        assert_eq!(w1, w2);
+        assert_eq!(w1.id, w2.id);
+        assert_eq!(w1.input, w2.input);
+        assert_eq!(w1.signal, w2.signal);
 
         let w1 = Wire::try_from("NOT x -> h").unwrap();
         let w2 = Wire::from_gate_not("h", "x").unwrap();
-        assert_eq!(w1, w2);
+        assert_eq!(w1.id, w2.id);
+        assert_eq!(w1.input, w2.input);
+        assert_eq!(w1.signal, w2.signal);
 
         let w1 = Wire::try_from("x OR y -> e").unwrap();
         let w2 = Wire::from_gate_or("e", "x", "y").unwrap();
-        assert_eq!(w1, w2);
+        assert_eq!(w1.id, w2.id);
+        assert_eq!(w1.input, w2.input);
+        assert_eq!(w1.signal, w2.signal);
 
         let w1 = Wire::try_from("y RSHIFT 2 -> g").unwrap();
         let w2 = Wire::from_gate_rshift("g", "y", 2).unwrap();
-        assert_eq!(w1, w2);
+        assert_eq!(w1.id, w2.id);
+        assert_eq!(w1.input, w2.input);
+        assert_eq!(w1.signal, w2.signal);
 
         let w1 = Wire::try_from("NOT y -> i").unwrap();
         let w2 = Wire::from_gate_not("i", "y").unwrap();
-        assert_eq!(w1, w2);
+        assert_eq!(w1.id, w2.id);
+        assert_eq!(w1.input, w2.input);
+        assert_eq!(w1.signal, w2.signal);
 
         let w1 = Wire::try_from("123 -> x").unwrap();
         let w2 = Wire::with_value("x", 123).unwrap();
-        assert_eq!(w1, w2);
+        assert_eq!(w1.id, w2.id);
+        assert_eq!(w1.input, w2.input);
+        assert_eq!(w1.signal, w2.signal);
 
         let w1 = Wire::try_from("x AND y -> d").unwrap();
         let w2 = Wire::from_gate_and("d", "x", "y").unwrap();
-        assert_eq!(w1, w2);
+        assert_eq!(w1.id, w2.id);
+        assert_eq!(w1.input, w2.input);
+        assert_eq!(w1.signal, w2.signal);
     }
 }

@@ -22,20 +22,10 @@ impl CircuitBuilder {
         circuit
     }
 
-    pub fn add(&mut self, wire: Wire) -> &mut CircuitBuilder {
+    fn add(&mut self, wire: Wire) -> &mut CircuitBuilder {
         self.wires.insert(wire.id().to_owned(), wire);
         self
     }
-
-    // pub fn add_wire_with_input<S: Into<String>>(
-    //     &mut self,
-    //     id: S,
-    //     input: WireInput,
-    // ) -> &mut CircuitBuilder {
-    //     let wire = Wire::new(id, input).unwrap();
-    //     self.add(wire);
-    //     self
-    // }
 
     pub fn add_wire_with_value<S: Into<String>>(
         &mut self,
@@ -54,12 +44,6 @@ impl CircuitBuilder {
         self.add(Wire::from_wire(id, input_id).unwrap());
         self
     }
-
-    // fn add_wire_from_gate<S: Into<String>>(&mut self, id: S, gate: Gate) -> &mut CircuitBuilder {
-    //     let wire = Wire::from_gate(id, gate).unwrap();
-    //     self.add(wire);
-    //     self
-    // }
 
     pub fn add_gate_and<S: Into<String>, T: Into<String>, U: Into<String>>(
         &mut self,
@@ -151,14 +135,14 @@ mod tests {
 
         assert!(circuit.compute_signals().is_ok());
 
-        assert_eq!(circuit.signal_from("d"), Signal::Value(72));
-        assert_eq!(circuit.signal_from("e"), Signal::Value(507));
-        assert_eq!(circuit.signal_from("f"), Signal::Value(492));
-        assert_eq!(circuit.signal_from("g"), Signal::Value(114));
-        assert_eq!(circuit.signal_from("h"), Signal::Value(65412));
-        assert_eq!(circuit.signal_from("i"), Signal::Value(65079));
-        assert_eq!(circuit.signal_from("x"), Signal::Value(123));
-        assert_eq!(circuit.signal_from("y"), Signal::Value(456));
+        assert_eq!(circuit.signal("d"), Signal::Value(72));
+        assert_eq!(circuit.signal("e"), Signal::Value(507));
+        assert_eq!(circuit.signal("f"), Signal::Value(492));
+        assert_eq!(circuit.signal("g"), Signal::Value(114));
+        assert_eq!(circuit.signal("h"), Signal::Value(65412));
+        assert_eq!(circuit.signal("i"), Signal::Value(65079));
+        assert_eq!(circuit.signal("x"), Signal::Value(123));
+        assert_eq!(circuit.signal("y"), Signal::Value(456));
     }
 
     #[test]
@@ -176,14 +160,14 @@ mod tests {
 
         assert!(circuit.compute_signals().is_ok());
 
-        assert_eq!(circuit.signal_from("d"), Signal::Value(72));
-        assert_eq!(circuit.signal_from("e"), Signal::Value(507));
-        assert_eq!(circuit.signal_from("f"), Signal::Value(492));
-        assert_eq!(circuit.signal_from("g"), Signal::Value(114));
-        assert_eq!(circuit.signal_from("h"), Signal::Value(65412));
-        assert_eq!(circuit.signal_from("i"), Signal::Value(65079));
-        assert_eq!(circuit.signal_from("x"), Signal::Value(123));
-        assert_eq!(circuit.signal_from("y"), Signal::Value(456));
+        assert_eq!(circuit.signal("d"), Signal::Value(72));
+        assert_eq!(circuit.signal("e"), Signal::Value(507));
+        assert_eq!(circuit.signal("f"), Signal::Value(492));
+        assert_eq!(circuit.signal("g"), Signal::Value(114));
+        assert_eq!(circuit.signal("h"), Signal::Value(65412));
+        assert_eq!(circuit.signal("i"), Signal::Value(65079));
+        assert_eq!(circuit.signal("x"), Signal::Value(123));
+        assert_eq!(circuit.signal("y"), Signal::Value(456));
     }
 
     #[test]
@@ -198,6 +182,6 @@ mod tests {
             .build();
 
         assert!(circuit.compute_signals().is_ok());
-        assert_eq!(circuit.signal_from("xor"), Signal::Value(0xaa03));
+        assert_eq!(circuit.signal("xor"), Signal::Value(0xaa03));
     }
 }

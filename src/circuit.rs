@@ -1,5 +1,5 @@
 pub mod circuit_builder;
-pub mod wire;
+mod wire;
 
 use std::{
     collections::HashMap,
@@ -21,17 +21,11 @@ pub struct Circuit {
 }
 
 impl Circuit {
-    //
     pub fn new() -> Self {
-        // Self {
-        //     wires: HashMap::new(),
-        //     uncomputed: vec![],
-        //     uncomputable: vec![],
-        // }
         Self::default()
     }
 
-    pub fn add(&mut self, wire: Wire) -> Result<()> {
+    fn add(&mut self, wire: Wire) -> Result<()> {
         if self.wires.contains_key(wire.id()) {
             Err(Error::WireIdAlreadyExists(wire.id().to_string()))
         } else {
@@ -40,11 +34,6 @@ impl Circuit {
             Ok(())
         }
     }
-
-    // pub fn add_wire_with_input<S: Into<String>>(&mut self, id: S, input: WireInput) -> Result<()> {
-    //     let wire = Wire::new(id, input)?;
-    //     self.add(wire)
-    // }
 
     pub fn add_wire_with_value<S: Into<String>>(&mut self, id: S, value: u16) -> Result<()> {
         self.add(Wire::with_value(id, value)?)
@@ -57,10 +46,6 @@ impl Circuit {
     ) -> Result<()> {
         self.add(Wire::from_wire(id, input_id)?)
     }
-
-    // fn add_wire_from_gate<S: Into<String>>(&mut self, id: S, gate: Gate) -> Result<()> {
-    //     self.add(Wire::from_gate(id, gate)?)
-    // }
 
     pub fn add_gate_and<S: Into<String>, T: Into<String>, U: Into<String>>(
         &mut self,
@@ -124,6 +109,48 @@ impl Circuit {
         self.add(Wire::from_gate_not(output, input)?)
     }
 
+    #[allow(dead_code)]
+    fn get_wire<S: Into<String>>(&self, id: S) -> Result<&Wire> {
+        self.get_wire_of(&WireId::new(id)?)
+    }
+
+    fn get_wire_of(&self, id: &WireId) -> Result<&Wire> {
+        self.wires
+            .get(id)
+            .ok_or(Error::UnknownWireId(id.to_string()))
+    }
+
+    #[allow(dead_code)]
+    fn wire_of(&self, id: &WireId) -> &Wire {
+        self.get_wire_of(id).unwrap()
+    }
+
+    pub fn get_signal<S: Into<String>>(&self, id: S) -> Result<Signal> {
+        self.get_signal_of(&WireId::new(id)?)
+    }
+
+    pub fn signal<S: Into<String>>(&self, id: S) -> Signal {
+        self.get_signal(id).unwrap()
+    }
+
+    fn get_signal_of(&self, id: &WireId) -> Result<Signal> {
+        self.get_wire_of(id).map(|w| *w.signal())
+    }
+
+    #[allow(dead_code)]
+    fn signal_of(&self, id: &WireId) -> Signal {
+        self.get_signal_of(id).unwrap()
+    }
+
+    fn set_signal_of(&mut self, id: &WireId, signal: Signal) -> Result<()> {
+        self.wires
+            .get_mut(id)
+            .ok_or(Error::UnknownWireId(id.to_string()))
+            .map(|w| {
+                w.set_signal(signal);
+            })
+    }
+
     pub fn compute_signals(&mut self) -> Result<()> {
         let mut to_be_computed = mem::take(&mut self.uncomputable);
         for id in &mut to_be_computed {
@@ -136,23 +163,9 @@ impl Circuit {
         Ok(())
     }
 
-    // Helper function of compute_signals_of()
-    fn set_uncomputable_from_index(
-        &mut self,
-        mut ids: Vec<WireId>,
-        root_index: usize,
-    ) -> Vec<WireId> {
-        for id in &ids[root_index..] {
-            self.set_signal_of(id, Signal::Uncomputable).unwrap();
-            self.uncomputable.push(id.to_owned());
-        }
-        ids.truncate(root_index);
-        ids
-    }
-
     // TODO: Need testing
-    pub fn compute_signal_from<S: Into<String>>(&mut self, id: S) -> Result<Signal> {
-        let id = WireId::try_from(id.into())?;
+    pub fn compute_signal<S: Into<String>>(&mut self, id: S) -> Result<Signal> {
+        let id = WireId::new(id)?;
         self.compute_signals_of(vec![id.clone()])?;
         self.get_signal_of(&id)
     }
@@ -179,7 +192,7 @@ impl Circuit {
                                 ids.pop();
                             }
                             WireInput::Wire(input_id) => {
-                                if let Ok(input_wire) = self.get_wire(input_id) {
+                                if let Ok(input_wire) = self.get_wire_of(input_id) {
                                     match input_wire.signal() {
                                         Signal::Value(signal) => {
                                             self.set_signal_of(id, Signal::Value(*signal)).unwrap();
@@ -203,7 +216,7 @@ impl Circuit {
                             WireInput::Gate(gate) => match gate {
                                 Gate::And { input1, input2 } | Gate::Or { input1, input2 } => {
                                     if let (Ok(wire1), Ok(wire2)) =
-                                        (self.get_wire(input1), self.get_wire(input2))
+                                        (self.get_wire_of(input1), self.get_wire_of(input2))
                                     {
                                         match (wire1.signal(), wire2.signal()) {
                                             (Signal::Value(signal1), Signal::Value(signal2)) => {
@@ -241,7 +254,7 @@ impl Circuit {
                                 | Gate::LShift { input, .. }
                                 | Gate::RShift { input, .. }
                                 | Gate::Not { input } => {
-                                    if let Ok(input_wire) = self.get_wire(input) {
+                                    if let Ok(input_wire) = self.get_wire_of(input) {
                                         match input_wire.signal() {
                                             Signal::Value(signal) => {
                                                 self.set_signal_of(id, gate.signal(*signal, None))
@@ -275,40 +288,24 @@ impl Circuit {
         Ok(())
     }
 
-    fn get_wire(&self, id: &WireId) -> Result<&Wire> {
-        self.wires
-            .get(id)
-            .ok_or(Error::UnknownWireId(id.to_string()))
+    // Helper function of compute_signals_of()
+    fn set_uncomputable_from_index(
+        &mut self,
+        mut ids: Vec<WireId>,
+        root_index: usize,
+    ) -> Vec<WireId> {
+        for id in &ids[root_index..] {
+            self.set_signal_of(id, Signal::Uncomputable).unwrap();
+            self.uncomputable.push(id.to_owned());
+        }
+        ids.truncate(root_index);
+        ids
     }
 
-    // fn wire(&self, id: &WireId) -> &Wire {
-    //     self.get_wire(id).unwrap()
-    // }
-
-    fn get_signal_of(&self, id: &WireId) -> Result<Signal> {
-        self.get_wire(id).map(|w| *w.signal())
-    }
-
-    // fn signal_of(&self, id: &WireId) -> Signal {
-    //     self.get_signal_of(id).unwrap()
-    // }
-
-    pub fn get_signal_from<S: AsRef<str>>(&self, id: S) -> Result<Signal> {
-        let id = WireId::try_from(id.as_ref())?;
-        self.get_signal_of(&id)
-    }
-
-    pub fn signal_from<S: AsRef<str>>(&self, id: S) -> Signal {
-        self.get_signal_from(id).unwrap()
-    }
-
-    fn set_signal_of(&mut self, id: &WireId, signal: Signal) -> Result<()> {
-        self.wires
-            .get_mut(id)
-            .ok_or(Error::UnknownWireId(id.to_string()))
-            .map(|w| {
-                w.set_signal(signal);
-            })
+    pub fn print_signals(&self) {
+        for wire in self.wires.values() {
+            println!("{}: {:?}", wire.id(), wire.signal());
+        }
     }
 
     pub fn read<P: AsRef<Path>>(path: P) -> Result<Self> {
@@ -322,27 +319,18 @@ impl Circuit {
         f.write_all(data.as_bytes())
     }
 
-    fn reset_signals(&mut self) {
-        self.wires
-            .values_mut()
-            .for_each(|w| w.set_signal(Signal::Uncomputed));
-        self.uncomputable = vec![];
-        self.uncomputed = self.wires.keys().cloned().collect();
-    }
-
-    pub fn remove_wire_then_reset_signals<S: Into<String>>(&mut self, id: S) -> Result<Wire> {
-        // pub fn remove_wire_then_reset_signals<S: Into<String>>(&mut self, id: S) -> Result<()> {
-        let id = WireId::try_from(id.into())?;
+    pub fn remove_wire_then_reset_signals<S: Into<String>>(&mut self, id: S) -> Result<()> {
+        let id = WireId::new(id)?;
         self.wires
             .remove(&id)
             .ok_or(Error::UnknownWireId(id.to_string()))
-            .map(|w| {
+            .map(|_| {
                 self.reset_signals();
-                w
             })
     }
 
-    pub fn set_wire_then_reset_signals(&mut self, wire: Wire) -> Result<()> {
+    #[allow(dead_code)]
+    fn set_wire_then_reset_signals(&mut self, wire: Wire) -> Result<()> {
         if let Some(w) = self.wires.get_mut(wire.id()) {
             *w = wire;
             self.reset_signals();
@@ -352,18 +340,14 @@ impl Circuit {
         }
     }
 
-    pub fn print_signals(&self) {
-        for wire in self.wires.values() {
-            println!("{}: {:?}", wire.id(), wire.signal());
-        }
+    fn reset_signals(&mut self) {
+        self.wires
+            .values_mut()
+            .for_each(|w| w.set_signal(Signal::Uncomputed));
+        self.uncomputable = vec![];
+        self.uncomputed = self.wires.keys().cloned().collect();
     }
 }
-
-// impl Default for Circuit {
-//     fn default() -> Self {
-//         Self::new()
-//     }
-// }
 
 impl TryFrom<&str> for Circuit {
     type Error = Error;
@@ -391,6 +375,12 @@ mod tests {
     use super::*;
 
     #[test]
+    fn empty_circuit() {
+        let mut circuit = Circuit::new();
+        assert!(circuit.compute_signals().is_ok());
+    }
+
+    #[test]
     fn conflicting_wires() {
         let mut circuit = Circuit::new();
         assert!(circuit.add_wire_with_value("w", 0).is_ok());
@@ -408,24 +398,15 @@ mod tests {
         assert!(circuit.add(w1).is_ok());
         assert!(circuit.add(w2).is_ok());
         assert!(matches!(
-            circuit.get_signal_from("z"),
+            circuit.get_signal("z"),
             Err(Error::UnknownWireId(_))
         ));
-        assert_eq!(circuit.signal_from("a"), Signal::Uncomputed);
-        assert_eq!(circuit.signal_from("b"), Signal::Uncomputed);
+        assert_eq!(circuit.signal("a"), Signal::Uncomputed);
+        assert_eq!(circuit.signal("b"), Signal::Uncomputed);
 
         assert!(circuit.compute_signals().is_ok());
-        assert_eq!(circuit.signal_from("a"), Signal::Value(1));
-        assert_eq!(circuit.signal_from("b"), Signal::Value(1));
-
-        // let g = Gate::not("b").unwrap();
-        // let c = Wire::from_gate("c", g).unwrap();
-        // circuit.add(c).unwrap();
-        // assert!(matches!(circuit.get_signal_from("c"), Ok(None)));
-
-        // assert!(circuit.compute_signals().is_ok());
-        // assert!(matches!(circuit.get_signal_from("c"), Ok(Some(0xfffe))));
-        // println!("{}", circuit);
+        assert_eq!(circuit.signal("a"), Signal::Value(1));
+        assert_eq!(circuit.signal("b"), Signal::Value(1));
     }
 
     #[test]
@@ -457,14 +438,14 @@ mod tests {
 
         assert!(circuit.compute_signals().is_ok());
 
-        assert_eq!(circuit.signal_from("d"), Signal::Value(72));
-        assert_eq!(circuit.signal_from("e"), Signal::Value(507));
-        assert_eq!(circuit.signal_from("f"), Signal::Value(492));
-        assert_eq!(circuit.signal_from("g"), Signal::Value(114));
-        assert_eq!(circuit.signal_from("h"), Signal::Value(65412));
-        assert_eq!(circuit.signal_from("i"), Signal::Value(65079));
-        assert_eq!(circuit.signal_from("x"), Signal::Value(123));
-        assert_eq!(circuit.signal_from("y"), Signal::Value(456));
+        assert_eq!(circuit.signal("d"), Signal::Value(72));
+        assert_eq!(circuit.signal("e"), Signal::Value(507));
+        assert_eq!(circuit.signal("f"), Signal::Value(492));
+        assert_eq!(circuit.signal("g"), Signal::Value(114));
+        assert_eq!(circuit.signal("h"), Signal::Value(65412));
+        assert_eq!(circuit.signal("i"), Signal::Value(65079));
+        assert_eq!(circuit.signal("x"), Signal::Value(123));
+        assert_eq!(circuit.signal("y"), Signal::Value(456));
         Ok(())
     }
 
@@ -484,14 +465,14 @@ mod tests {
         // println!("{}", circuit);
         // circuit.print_signals();
 
-        assert_eq!(circuit.signal_from("d"), Signal::Value(72));
-        assert_eq!(circuit.signal_from("e"), Signal::Value(507));
-        assert_eq!(circuit.signal_from("f"), Signal::Value(492));
-        assert_eq!(circuit.signal_from("g"), Signal::Value(114));
-        assert_eq!(circuit.signal_from("h"), Signal::Value(65412));
-        assert_eq!(circuit.signal_from("i"), Signal::Value(65079));
-        assert_eq!(circuit.signal_from("x"), Signal::Value(123));
-        assert_eq!(circuit.signal_from("y"), Signal::Value(456));
+        assert_eq!(circuit.signal("d"), Signal::Value(72));
+        assert_eq!(circuit.signal("e"), Signal::Value(507));
+        assert_eq!(circuit.signal("f"), Signal::Value(492));
+        assert_eq!(circuit.signal("g"), Signal::Value(114));
+        assert_eq!(circuit.signal("h"), Signal::Value(65412));
+        assert_eq!(circuit.signal("i"), Signal::Value(65079));
+        assert_eq!(circuit.signal("x"), Signal::Value(123));
+        assert_eq!(circuit.signal("y"), Signal::Value(456));
         Ok(())
     }
 
@@ -517,7 +498,12 @@ mod tests {
         c2.add_gate_not("h", "x")?;
         c2.add_gate_not("i", "y")?;
 
-        assert_eq!(c1.wires, c2.wires);
+        for (id1, wire1) in &c1.wires {
+            let wire2 = c2.get_wire_of(id1)?;
+            assert_eq!(wire1.id(), wire2.id());
+            assert_eq!(wire1.input(), wire2.input());
+            assert_eq!(wire1.signal(), wire2.signal());
+        }
         Ok(())
     }
 
@@ -559,16 +545,16 @@ mod tests {
 
         assert!(c.compute_signals().is_ok());
 
-        assert_eq!(c.signal_from("x"), Signal::Value(0xfff0));
-        assert_eq!(c.signal_from("y"), Signal::Value(0x0fff));
-        assert_eq!(c.signal_from("xoy"), Signal::Value(0xffff));
-        assert_eq!(c.signal_from("nxoy"), Signal::Value(0x0));
-        assert_eq!(c.signal_from("u"), Signal::Uncomputable);
-        assert_eq!(c.signal_from("v"), Signal::Uncomputable);
-        assert_eq!(c.signal_from("w"), Signal::Uncomputable);
-        assert_eq!(c.signal_from("xoyau"), Signal::Uncomputable);
+        assert_eq!(c.signal("x"), Signal::Value(0xfff0));
+        assert_eq!(c.signal("y"), Signal::Value(0x0fff));
+        assert_eq!(c.signal("xoy"), Signal::Value(0xffff));
+        assert_eq!(c.signal("nxoy"), Signal::Value(0x0));
+        assert_eq!(c.signal("u"), Signal::Uncomputable);
+        assert_eq!(c.signal("v"), Signal::Uncomputable);
+        assert_eq!(c.signal("w"), Signal::Uncomputable);
+        assert_eq!(c.signal("xoyau"), Signal::Uncomputable);
         assert!(matches!(
-            c.get_signal_from("unknown"),
+            c.get_signal("unknown"),
             Err(Error::UnknownWireId(_))
         ));
     }
@@ -583,9 +569,9 @@ mod tests {
 
         assert!(c.compute_signals().is_ok());
 
-        assert_eq!(c.signal_from("x"), Signal::Value(x));
-        assert_eq!(c.signal_from("xox"), Signal::Value(x));
-        assert_eq!(c.signal_from("xax"), Signal::Value(x));
+        assert_eq!(c.signal("x"), Signal::Value(x));
+        assert_eq!(c.signal("xox"), Signal::Value(x));
+        assert_eq!(c.signal("xax"), Signal::Value(x));
     }
 
     #[test]
@@ -622,47 +608,35 @@ mod tests {
         c.add_gate_not("nz", "z").unwrap();
         assert!(c.compute_signals().is_ok());
 
-        assert!(matches!(
-            c.get_signal_from("a"),
-            Err(Error::UnknownWireId(_))
-        ));
-        assert!(matches!(
-            c.get_signal_from("d"),
-            Err(Error::UnknownWireId(_))
-        ));
+        assert!(matches!(c.get_signal("a"), Err(Error::UnknownWireId(_))));
+        assert!(matches!(c.get_signal("d"), Err(Error::UnknownWireId(_))));
 
-        assert_eq!(c.signal_from("b"), Signal::Value(0x10));
-        assert_eq!(c.signal_from("c"), Signal::Value(0x100));
-        assert_eq!(c.signal_from("boc"), Signal::Value(0x110));
+        assert_eq!(c.signal("b"), Signal::Value(0x10));
+        assert_eq!(c.signal("c"), Signal::Value(0x100));
+        assert_eq!(c.signal("boc"), Signal::Value(0x110));
 
-        assert_eq!(c.signal_from("aob"), Signal::Uncomputable);
-        assert_eq!(c.signal_from("cod"), Signal::Uncomputable);
-        assert_eq!(c.signal_from("x"), Signal::Uncomputable);
-        assert_eq!(c.signal_from("y"), Signal::Uncomputable);
-        assert_eq!(c.signal_from("z"), Signal::Uncomputable);
-        assert_eq!(c.signal_from("nz"), Signal::Uncomputable);
+        assert_eq!(c.signal("aob"), Signal::Uncomputable);
+        assert_eq!(c.signal("cod"), Signal::Uncomputable);
+        assert_eq!(c.signal("x"), Signal::Uncomputable);
+        assert_eq!(c.signal("y"), Signal::Uncomputable);
+        assert_eq!(c.signal("z"), Signal::Uncomputable);
+        assert_eq!(c.signal("nz"), Signal::Uncomputable);
         assert_eq!(c.uncomputable.len(), 6);
 
         c.add_wire_with_value("a", 0x1).unwrap();
         c.add_wire_with_value("d", 0x1000).unwrap();
         assert!(c.compute_signals().is_ok());
 
-        assert_eq!(c.signal_from("a"), Signal::Value(0x1));
-        assert_eq!(c.signal_from("b"), Signal::Value(0x10));
-        assert_eq!(c.signal_from("c"), Signal::Value(0x100));
-        assert_eq!(c.signal_from("d"), Signal::Value(0x1000));
-        assert_eq!(c.signal_from("aob"), Signal::Value(0x11));
-        assert_eq!(c.signal_from("boc"), Signal::Value(0x110));
-        assert_eq!(c.signal_from("cod"), Signal::Value(0x1100));
-        assert_eq!(c.signal_from("x"), Signal::Value(0x10));
-        assert_eq!(c.signal_from("y"), Signal::Value(0x100));
-        assert_eq!(c.signal_from("z"), Signal::Value(0x110));
-        assert_eq!(c.signal_from("nz"), Signal::Value(0xfeef));
-    }
-
-    #[test]
-    fn empty_circuit() {
-        let mut circuit = Circuit::new();
-        assert!(circuit.compute_signals().is_ok());
+        assert_eq!(c.signal("a"), Signal::Value(0x1));
+        assert_eq!(c.signal("b"), Signal::Value(0x10));
+        assert_eq!(c.signal("c"), Signal::Value(0x100));
+        assert_eq!(c.signal("d"), Signal::Value(0x1000));
+        assert_eq!(c.signal("aob"), Signal::Value(0x11));
+        assert_eq!(c.signal("boc"), Signal::Value(0x110));
+        assert_eq!(c.signal("cod"), Signal::Value(0x1100));
+        assert_eq!(c.signal("x"), Signal::Value(0x10));
+        assert_eq!(c.signal("y"), Signal::Value(0x100));
+        assert_eq!(c.signal("z"), Signal::Value(0x110));
+        assert_eq!(c.signal("nz"), Signal::Value(0xfeef));
     }
 }

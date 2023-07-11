@@ -41,9 +41,9 @@ pub enum ComponentInput {
 }
 
 impl Component {
-    // pub fn new(id: S, kind: ComponentKind) -> Result<Self> {
-    // 	let id = id.into();
-    // }
+    pub fn new(id: S, kind: ComponentKind) -> Result<Self> {
+        let id = id.into();
+    }
 
     pub fn wire_with_value(id: S, value: u16) -> Result<Self> {
         Self::wire(id, ComponentInput::Value(value))

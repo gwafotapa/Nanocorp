@@ -16,29 +16,35 @@ pub(crate) enum Gate {
 
 impl Gate {
     pub fn and<S: Into<String>, T: Into<String>>(input1: S, input2: T) -> Result<Self> {
-        let input1 = WireId::try_from(input1.into())?;
-        let input2 = WireId::try_from(input2.into())?;
-        Ok(Self::And { input1, input2 })
+        Ok(Self::And {
+            input1: WireId::new(input1)?,
+            input2: WireId::new(input2)?,
+        })
     }
 
     pub fn and_value<S: Into<String>>(input: S, value: u16) -> Result<Self> {
-        let input = WireId::try_from(input.into())?;
-        Ok(Self::AndValue { input, value })
+        Ok(Self::AndValue {
+            input: WireId::new(input)?,
+            value,
+        })
     }
 
     pub fn or<S: Into<String>, T: Into<String>>(input1: S, input2: T) -> Result<Self> {
-        let input1 = WireId::try_from(input1.into())?;
-        let input2 = WireId::try_from(input2.into())?;
-        Ok(Self::Or { input1, input2 })
+        Ok(Self::Or {
+            input1: WireId::new(input1)?,
+            input2: WireId::new(input2)?,
+        })
     }
 
     pub fn or_value<S: Into<String>>(input: S, value: u16) -> Result<Self> {
-        let input = WireId::try_from(input.into())?;
-        Ok(Self::OrValue { input, value })
+        Ok(Self::OrValue {
+            input: WireId::new(input)?,
+            value,
+        })
     }
 
     pub fn lshift<S: Into<String>>(input: S, shift: u8) -> Result<Self> {
-        let input = WireId::try_from(input.into())?;
+        let input = WireId::new(input)?;
         if shift < 16 {
             Ok(Self::LShift { input, shift })
         } else {
@@ -47,7 +53,7 @@ impl Gate {
     }
 
     pub fn rshift<S: Into<String>>(input: S, shift: u8) -> Result<Self> {
-        let input = WireId::try_from(input.into())?;
+        let input = WireId::new(input)?;
         if shift < 16 {
             Ok(Self::RShift { input, shift })
         } else {
@@ -56,8 +62,9 @@ impl Gate {
     }
 
     pub fn not<S: Into<String>>(input: S) -> Result<Self> {
-        let input = WireId::try_from(input.into())?;
-        Ok(Self::Not { input })
+        Ok(Self::Not {
+            input: WireId::new(input)?,
+        })
     }
 
     pub fn has_input(&self, id: &WireId) -> bool {

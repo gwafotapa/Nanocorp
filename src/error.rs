@@ -9,8 +9,20 @@ pub enum Error {
     #[error("Wire id '{0}' is not ascii lowercase")]
     InvalidWireId(String),
 
+    #[error("Identical input and output ids '{0}'")]
+    InputMatchesOutput(String),
+
     #[error("Shift amount '{0}' exceeds 15")]
     TooLargeShift(u8),
+
+    #[error("Circuit already has a wire whose id is '{0}'")]
+    WireIdAlreadyExists(String),
+
+    #[error("Circuit has no wire '{0}'")]
+    UnknownWireId(String),
+
+    #[error("Circuit has a loop")]
+    CircuitLoop,
 
     #[error("Cannot parse string '{0}' as a gate")]
     ParseGate(String),
@@ -21,18 +33,6 @@ pub enum Error {
     #[error("String {0} has no arrow ' -> '")]
     ParseArrow(String),
 
-    #[error("Circuit already has a wire whose id is '{0}'")]
-    WireIdAlreadyExists(String),
-
-    #[error("Circuit has no wire '{0}'")]
-    UnknownWireId(String),
-
-    #[error("Identical input and output ids '{0}'")]
-    InputMatchesOutput(String),
-
     #[error(transparent)]
     InvalidPath(#[from] io::Error),
-
-    #[error("Circuit has a loop")]
-    CircuitLoop,
 }
