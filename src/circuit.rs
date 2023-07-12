@@ -542,28 +542,28 @@ mod tests {
     use super::*;
 
     #[test]
-    fn empty_circuit() {
+    fn empty_circuit() -> Result<()> {
         let mut circuit = Circuit::new();
-        assert!(circuit.compute_signals().is_ok());
+        circuit.compute_signals()?;
+        Ok(())
     }
 
     #[test]
-    fn conflicting_wires() {
+    fn conflicting_wires() -> Result<()> {
         let mut circuit = Circuit::new();
-        assert!(circuit.add_wire_with_value("w", 0).is_ok());
+        circuit.add_wire_with_value("w", 0)?;
         assert!(matches!(
             circuit.add_wire_with_value("w", 1),
             Err(Error::WireIdAlreadyExists(_))
         ));
+        Ok(())
     }
 
     #[test]
-    fn simple_circuit() {
+    fn simple_circuit() -> Result<()> {
         let mut circuit = Circuit::new();
-        let w1 = Wire::with_value("a", 1).unwrap();
-        let w2 = Wire::from_wire("b", "a").unwrap();
-        assert!(circuit.add(w1).is_ok());
-        assert!(circuit.add(w2).is_ok());
+        circuit.add_wire_with_value("a", 1)?;
+        circuit.add_wire_from_wire("b", "a")?;
         assert!(matches!(
             circuit.get_signal("z"),
             Err(Error::UnknownWireId(_))
@@ -571,53 +571,14 @@ mod tests {
         assert_eq!(circuit.signal("a"), Signal::Uncomputed);
         assert_eq!(circuit.signal("b"), Signal::Uncomputed);
 
-        assert!(circuit.compute_signals().is_ok());
+        circuit.compute_signals()?;
         assert_eq!(circuit.signal("a"), Signal::Value(1));
         assert_eq!(circuit.signal("b"), Signal::Value(1));
-    }
-
-    #[test]
-    fn nanocorp_example_1() -> Result<()> {
-        let x = Wire::with_value("x", 123)?;
-        let y = Wire::with_value("y", 456)?;
-        let gd = Gate::and("x", "y")?;
-        let ge = Gate::or("x", "y")?;
-        let gf = Gate::lshift("x", 2)?;
-        let gg = Gate::rshift("y", 2)?;
-        let gh = Gate::not("x")?;
-        let gi = Gate::not("y")?;
-        let d = Wire::from_gate("d", gd)?;
-        let e = Wire::from_gate("e", ge)?;
-        let f = Wire::from_gate("f", gf)?;
-        let g = Wire::from_gate("g", gg)?;
-        let h = Wire::from_gate("h", gh)?;
-        let i = Wire::from_gate("i", gi)?;
-
-        let mut circuit = Circuit::new();
-        circuit.add(x)?;
-        circuit.add(y)?;
-        circuit.add(d)?;
-        circuit.add(e)?;
-        circuit.add(f)?;
-        circuit.add(g)?;
-        circuit.add(h)?;
-        circuit.add(i)?;
-
-        assert!(circuit.compute_signals().is_ok());
-
-        assert_eq!(circuit.signal("d"), Signal::Value(72));
-        assert_eq!(circuit.signal("e"), Signal::Value(507));
-        assert_eq!(circuit.signal("f"), Signal::Value(492));
-        assert_eq!(circuit.signal("g"), Signal::Value(114));
-        assert_eq!(circuit.signal("h"), Signal::Value(65412));
-        assert_eq!(circuit.signal("i"), Signal::Value(65079));
-        assert_eq!(circuit.signal("x"), Signal::Value(123));
-        assert_eq!(circuit.signal("y"), Signal::Value(456));
         Ok(())
     }
 
     #[test]
-    fn nanocorp_example_1_bis() -> Result<()> {
+    fn nanocorp_example_1() -> Result<()> {
         let mut circuit = Circuit::new();
         circuit.add_wire_with_value("x", 123)?;
         circuit.add_wire_with_value("y", 456)?;
@@ -627,10 +588,9 @@ mod tests {
         circuit.add_gate_rshift("g", "y", 2)?;
         circuit.add_gate_not("h", "x")?;
         circuit.add_gate_not("i", "y")?;
-        assert!(circuit.compute_signals().is_ok());
-
-        // println!("{}", circuit);
-        // circuit.print_signals();
+        circuit.compute_signals()?;
+        println!("{}", circuit);
+        circuit.print_signals();
 
         assert_eq!(circuit.signal("d"), Signal::Value(72));
         assert_eq!(circuit.signal("e"), Signal::Value(507));
@@ -644,7 +604,7 @@ mod tests {
     }
 
     #[test]
-    fn try_from_nanocorp_example_1() -> Result<()> {
+    fn nanocorp_example_1_from_string() -> Result<()> {
         let s = "x AND y -> d\n\
 		 NOT x -> h\n\
 		 NOT y -> i\n\
@@ -653,7 +613,7 @@ mod tests {
 		 x LSHIFT 2 -> f\n\
 		 123 -> x\n\
 		 456 -> y";
-        let c1 = Circuit::try_from(s).unwrap();
+        let c1 = Circuit::try_from(s)?;
 
         let mut c2 = Circuit::new();
         c2.add_wire_with_value("x", 123)?;
@@ -669,7 +629,6 @@ mod tests {
         Ok(())
     }
 
-    #[ignore]
     #[test]
     fn read_nanocorp_example_2() -> Result<()> {
         let c = Circuit::read("circuits/nanocorp_2.txt")?;
@@ -677,35 +636,45 @@ mod tests {
         Ok(())
     }
 
-    #[ignore]
     #[test]
-    fn write_nanocorp_example_1() -> Result<()> {
-        let mut c = Circuit::new();
-        c.add_wire_with_value("x", 123)?;
-        c.add_wire_with_value("y", 456)?;
-        c.add_gate_and("d", "x", "y")?;
-        c.add_gate_or("e", "x", "y")?;
-        c.add_gate_lshift("f", "x", 2)?;
-        c.add_gate_rshift("g", "y", 2)?;
-        c.add_gate_not("h", "x")?;
-        c.add_gate_not("i", "y")?;
-        c.write("circuits/nanocorp_1.txt").unwrap();
+    fn write_read_nanocorp_example_1() -> Result<()> {
+        let mut c1 = Circuit::new();
+        c1.add_wire_with_value("x", 123)?;
+        c1.add_wire_with_value("y", 456)?;
+        c1.add_gate_and("d", "x", "y")?;
+        c1.add_gate_or("e", "x", "y")?;
+        c1.add_gate_lshift("f", "x", 2)?;
+        c1.add_gate_rshift("g", "y", 2)?;
+        c1.add_gate_not("h", "x")?;
+        c1.add_gate_not("i", "y")?;
+        c1.write("circuits/nanocorp_1.txt")?;
+
+        let c2 = Circuit::read("circuits/nanocorp_1.txt")?;
+        assert!(c1.equals(&c2));
         Ok(())
     }
 
     #[test]
-    fn non_connected_wires() {
-        let mut c = Circuit::new();
-        c.add_wire_with_value("x", 0xfff0).unwrap();
-        c.add_wire_with_value("y", 0x0fff).unwrap();
-        c.add_gate_or("xoy", "x", "y").unwrap();
-        c.add_gate_and("xoyau", "xoy", "unknown").unwrap();
-        c.add_gate_lshift("u", "unknown", 2).unwrap();
-        c.add_gate_rshift("v", "unknown", 2).unwrap();
-        c.add_gate_not("nxoy", "xoy").unwrap();
-        c.add_gate_not("w", "unknown").unwrap();
+    fn read_write_read_nanocorp_example_2() -> Result<()> {
+        let c1 = Circuit::read("circuits/nanocorp_2.txt")?;
+        c1.write("circuits/nanocorp_2_copy.txt")?;
+        let c2 = Circuit::read("circuits/nanocorp_2_copy.txt")?;
+        assert!(c1.equals(&c2));
+        Ok(())
+    }
 
-        assert!(c.compute_signals().is_ok());
+    #[test]
+    fn non_connected_wires() -> Result<()> {
+        let mut c = Circuit::new();
+        c.add_wire_with_value("x", 0xfff0)?;
+        c.add_wire_with_value("y", 0x0fff)?;
+        c.add_gate_or("xoy", "x", "y")?;
+        c.add_gate_and("xoyau", "xoy", "unknown")?;
+        c.add_gate_lshift("u", "unknown", 2)?;
+        c.add_gate_rshift("v", "unknown", 2)?;
+        c.add_gate_not("nxoy", "xoy")?;
+        c.add_gate_not("w", "unknown")?;
+        c.compute_signals()?;
 
         assert_eq!(c.signal("x"), Signal::Value(0xfff0));
         assert_eq!(c.signal("y"), Signal::Value(0x0fff));
@@ -719,56 +688,59 @@ mod tests {
             c.get_signal("unknown"),
             Err(Error::UnknownWireId(_))
         ));
+        Ok(())
     }
 
     #[test]
-    fn identical_gate_inputs() {
+    fn identical_gate_inputs() -> Result<()> {
         let x = 0xa35c;
         let mut c = Circuit::new();
-        c.add_wire_with_value("x", x).unwrap();
-        c.add_gate_or("xox", "x", "x").unwrap();
-        c.add_gate_and("xax", "x", "x").unwrap();
-
-        assert!(c.compute_signals().is_ok());
+        c.add_wire_with_value("x", x)?;
+        c.add_gate_or("xox", "x", "x")?;
+        c.add_gate_and("xax", "x", "x")?;
+        c.compute_signals()?;
 
         assert_eq!(c.signal("x"), Signal::Value(x));
         assert_eq!(c.signal("xox"), Signal::Value(x));
         assert_eq!(c.signal("xax"), Signal::Value(x));
+        Ok(())
     }
 
     #[test]
-    fn loop_2_wires() {
+    fn loop_2_wires() -> Result<()> {
         let mut c = Circuit::new();
-        c.add_wire_from_wire("a", "b").unwrap();
-        c.add_wire_from_wire("b", "a").unwrap();
+        c.add_wire_from_wire("a", "b")?;
+        c.add_wire_from_wire("b", "a")?;
         assert!(c.compute_signals().is_err());
+        Ok(())
     }
 
     #[test]
-    fn loop_3_wires() {
+    fn loop_3_wires() -> Result<()> {
         let mut c = Circuit::new();
-        c.add_wire_from_wire("a", "b").unwrap();
-        c.add_gate_and("b", "c", "d").unwrap();
-        c.add_gate_or("c", "e", "f").unwrap();
-        c.add_gate_not("f", "b").unwrap();
-        c.add_wire_with_value("d", 19).unwrap();
-        c.add_wire_with_value("e", 7).unwrap();
+        c.add_wire_from_wire("a", "b")?;
+        c.add_gate_and("b", "c", "d")?;
+        c.add_gate_or("c", "e", "f")?;
+        c.add_gate_not("f", "b")?;
+        c.add_wire_with_value("d", 19)?;
+        c.add_wire_with_value("e", 7)?;
         assert!(c.compute_signals().is_err());
+        Ok(())
     }
 
     #[test]
-    fn compute_signals_then_add_wire() {
+    fn compute_signals_then_add_wire() -> Result<()> {
         let mut c = Circuit::new();
-        c.add_wire_with_value("b", 0x10).unwrap();
-        c.add_wire_with_value("c", 0x100).unwrap();
-        c.add_gate_or("aob", "a", "b").unwrap();
-        c.add_gate_or("boc", "b", "c").unwrap();
-        c.add_gate_or("cod", "c", "d").unwrap();
-        c.add_gate_and("x", "aob", "boc").unwrap();
-        c.add_gate_and("y", "boc", "cod").unwrap();
-        c.add_gate_or("z", "x", "y").unwrap();
-        c.add_gate_not("nz", "z").unwrap();
-        assert!(c.compute_signals().is_ok());
+        c.add_wire_with_value("b", 0x10)?;
+        c.add_wire_with_value("c", 0x100)?;
+        c.add_gate_or("aob", "a", "b")?;
+        c.add_gate_or("boc", "b", "c")?;
+        c.add_gate_or("cod", "c", "d")?;
+        c.add_gate_and("x", "aob", "boc")?;
+        c.add_gate_and("y", "boc", "cod")?;
+        c.add_gate_or("z", "x", "y")?;
+        c.add_gate_not("nz", "z")?;
+        c.compute_signals()?;
 
         assert!(matches!(c.get_signal("a"), Err(Error::UnknownWireId(_))));
         assert!(matches!(c.get_signal("d"), Err(Error::UnknownWireId(_))));
@@ -785,9 +757,9 @@ mod tests {
         assert_eq!(c.signal("nz"), Signal::Uncomputable);
         assert_eq!(c.uncomputable.len(), 6);
 
-        c.add_wire_with_value("a", 0x1).unwrap();
-        c.add_wire_with_value("d", 0x1000).unwrap();
-        assert!(c.compute_signals().is_ok());
+        c.add_wire_with_value("a", 0x1)?;
+        c.add_wire_with_value("d", 0x1000)?;
+        c.compute_signals()?;
 
         assert_eq!(c.signal("a"), Signal::Value(0x1));
         assert_eq!(c.signal("b"), Signal::Value(0x10));
@@ -800,5 +772,6 @@ mod tests {
         assert_eq!(c.signal("y"), Signal::Value(0x100));
         assert_eq!(c.signal("z"), Signal::Value(0x110));
         assert_eq!(c.signal("nz"), Signal::Value(0xfeef));
+        Ok(())
     }
 }

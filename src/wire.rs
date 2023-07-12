@@ -234,6 +234,7 @@ mod tests {
         assert!(Wire::from_gate_rshift("rshift", "w", 15).is_ok());
         assert!(Wire::try_from("a LSHIFT 0 -> w").is_ok());
         assert!(Wire::try_from("a RSHIFT 15 -> w").is_ok());
+
         assert!(matches!(
             Wire::from_gate_rshift("rshift", "w", 16),
             Err(Error::TooLargeShift(16))

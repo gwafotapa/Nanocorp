@@ -186,6 +186,7 @@ mod tests {
     fn shift_amount() {
         assert!(Gate::lshift("sh", 0).is_ok());
         assert!(Gate::rshift("sh", 15).is_ok());
+
         assert!(matches!(
             Gate::rshift("sh", 16),
             Err(Error::TooLargeShift(16))
