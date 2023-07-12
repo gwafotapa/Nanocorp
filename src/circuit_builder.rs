@@ -6,16 +6,44 @@ use super::{
 };
 use crate::error::{Error, Result};
 
+/// A builder for [`Circuit`]
+///
+/// [`CircuitBuilder`] has methods named after those of [`Circuit`] for adding wires.
+///
+/// # Example
+///
+/// The circuit below tests if x is greater than 32767
+/// (returning 1 if it is true and 0 if it is not).
+/// ```
+/// # use circuitry::{CircuitBuilder, Signal, Error};
+/// # fn main() -> Result<(), Error> {
+/// let mut is_greater_than_32767 = CircuitBuilder::new()
+///     .add_wire_with_value("x", 0x7fff)?  // Adds wire x emitting 32767
+///     .add_gate_rshift("y", "x", 15)?     // Adds wire y emitting x >> 15
+///     .add_gate_and_value("res", "y", 1)? // Adds wire res emitting y & 1
+///     .build();
+///
+/// is_greater_than_32767.compute_signals()?;
+/// assert_eq!(is_greater_than_32767.signal("res"), Signal::Value(0));
+/// # Ok(())
+/// # }
+/// ```
+
+/// You can also use method [`add_wire()`](Self::add_wire)
+/// with string representation if you prefer.
+/// See [example](Circuit#example-1) for usage.
 #[derive(Clone, Debug, Default)]
 pub struct CircuitBuilder {
     wires: HashMap<WireId, Wire>,
 }
 
 impl CircuitBuilder {
+    /// Creates an empty builder.
     pub fn new() -> Self {
         Self::default()
     }
 
+    /// Final call method building the circuit from the builder.
     pub fn build(&mut self) -> Circuit {
         let mut circuit = Circuit::new();
         circuit.set_wires(mem::take(&mut self.wires));
@@ -32,10 +60,13 @@ impl CircuitBuilder {
         }
     }
 
+    /// Adds a wire whose string representation is `s`.
+    /// See [example](Circuit#example-1) for usage.
     pub fn add_wire(&mut self, s: &str) -> Result<&mut CircuitBuilder> {
         self.add(Wire::try_from(s)?)
     }
 
+    /// Equivalent of [`Circuit::add_wire_with_value`].
     pub fn add_wire_with_value<S: Into<String>>(
         &mut self,
         id: S,
@@ -44,6 +75,7 @@ impl CircuitBuilder {
         self.add(Wire::with_value(id, value)?)
     }
 
+    /// Equivalent of [`Circuit::add_wire_from_wire`].
     pub fn add_wire_from_wire<S: Into<String>, T: Into<String>>(
         &mut self,
         id: S,
@@ -52,6 +84,7 @@ impl CircuitBuilder {
         self.add(Wire::from_wire(id, input_id)?)
     }
 
+    /// Equivalent of [`Circuit::add_gate_and`].
     pub fn add_gate_and<S: Into<String>, T: Into<String>, U: Into<String>>(
         &mut self,
         output: S,
@@ -61,6 +94,7 @@ impl CircuitBuilder {
         self.add(Wire::from_gate_and(output, input1, input2)?)
     }
 
+    /// Equivalent of [`Circuit::add_gate_and_value`].
     pub fn add_gate_and_value<S: Into<String>, T: Into<String>>(
         &mut self,
         output: S,
@@ -70,6 +104,7 @@ impl CircuitBuilder {
         self.add(Wire::from_gate_and_value(output, input, value)?)
     }
 
+    /// Equivalent of [`Circuit::add_gate_or`].
     pub fn add_gate_or<S: Into<String>, T: Into<String>, U: Into<String>>(
         &mut self,
         output: S,
@@ -79,6 +114,7 @@ impl CircuitBuilder {
         self.add(Wire::from_gate_or(output, input1, input2)?)
     }
 
+    /// Equivalent of [`Circuit::add_gate_or_value`].
     pub fn add_gate_or_value<S: Into<String>, T: Into<String>>(
         &mut self,
         output: S,
@@ -88,6 +124,7 @@ impl CircuitBuilder {
         self.add(Wire::from_gate_or_value(output, input, value)?)
     }
 
+    /// Equivalent of [`Circuit::add_gate_lshift`].
     pub fn add_gate_lshift<S: Into<String>, T: Into<String>>(
         &mut self,
         output: S,
@@ -97,6 +134,7 @@ impl CircuitBuilder {
         self.add(Wire::from_gate_lshift(output, input, shift)?)
     }
 
+    /// Equivalent of [`Circuit::add_gate_rshift`].
     pub fn add_gate_rshift<S: Into<String>, T: Into<String>>(
         &mut self,
         output: S,
@@ -106,6 +144,7 @@ impl CircuitBuilder {
         self.add(Wire::from_gate_rshift(output, input, shift)?)
     }
 
+    /// Equivalent of [`Circuit::add_gate_not`].
     pub fn add_gate_not<S: Into<String>, T: Into<String>>(
         &mut self,
         output: S,

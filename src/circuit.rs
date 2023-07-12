@@ -14,11 +14,12 @@ use crate::error::{Error, Result};
 ///
 /// A circuit is built by adding wires one at a time.
 /// Each wire has a unique id which is an ascii lowercase string.  
-/// A wire can have three kinds of inputs:
-/// - a constant value ([u16])
+/// A wire can have three kinds of input:
+/// - a value ([u16])
 /// - the output of another wire
 /// - a gate combining outputs of other wires
-/// When first added, a wire's signal is [`Signal::Uncomputed`].  
+///
+/// When first added, a wire's signal is [`Signal::Uncomputed`].
 /// Calling [`compute_signals()`](Self::compute_signals) will compute signals
 /// for all wires in the circuit.
 /// You can then retrieve a signal by calling [`signal()`](Self::signal)
@@ -27,13 +28,13 @@ use crate::error::{Error, Result};
 /// # Example
 ///
 /// The following circuit determines if a number is a multiple of 4.  
-/// Wire x takes the number as input.
+/// Wire x takes the number as input, here 100.
 /// Wire res emits signal 1 if x is a multiple of 4 and 0 otherwise.
 /// ```
 /// # use circuitry::{Circuit, Signal, Error};
 /// # fn main() -> Result<(), Error> {
 /// let mut is_multiple_of_4 = Circuit::new();
-/// is_multiple_of_4.add_wire_with_value("x", 100)?;       // Adds wire x emitting value 100
+/// is_multiple_of_4.add_wire_with_value("x", 100)?;       // Adds wire x emitting 100
 /// is_multiple_of_4.add_gate_and_value("y", "x", 1)?;     // Adds wire y emitting x & 1
 /// is_multiple_of_4.add_gate_and_value("z", "x", 2)?;     // Adds wire z emitting y & 2
 /// is_multiple_of_4.add_gate_or("yz", "y", "z")?;         // Adds wire yz emitting y | z
@@ -53,7 +54,9 @@ use crate::error::{Error, Result};
 /// have names identical to those of [`Circuit`].
 ///
 /// Wires also have string representations if you prefer.
-/// In that case, use repeated calls to [`add_wire()`](Self::add_wire)
+/// In that case, use repeated calls to [`add_wire()`](Self::add_wire).
+///
+/// Here's an example using [`CircuitBuilder`](super::CircuitBuilder) with string representation.
 ///
 /// # Example
 /// The circuit below computes the logical XOR between its wires x and y.
@@ -64,7 +67,7 @@ use crate::error::{Error, Result};
 /// let mut circuit = CircuitBuilder::new()
 ///     .add_wire("2536 -> x")?        // Adds wire x emitting signal 2536
 ///     .add_wire("9711 -> y")?
-///     .add_wire("x OR y -> o")?      // Adds wire o output of a gate OR with inputs x band y
+///     .add_wire("x OR y -> o")?      // Adds wire o output of a gate OR with inputs x and y
 ///     .add_wire("x AND y -> a")?
 ///     .add_wire("NOT a -> na")?
 ///     .add_wire("o AND na -> xor")?
