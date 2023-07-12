@@ -158,11 +158,10 @@ impl CircuitBuilder {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::Signal;
 
     #[test]
     fn one_liner() -> Result<()> {
-        let mut circuit = CircuitBuilder::new()
+        let c1 = CircuitBuilder::new()
             .add_wire_with_value("x", 123)?
             .add_wire_with_value("y", 456)?
             .add_gate_and("d", "x", "y")?
@@ -173,16 +172,17 @@ mod tests {
             .add_gate_not("i", "y")?
             .build();
 
-        assert!(circuit.compute_signals().is_ok());
+        let mut c2 = Circuit::new();
+        c2.add_wire_with_value("x", 123)?;
+        c2.add_wire_with_value("y", 456)?;
+        c2.add_gate_and("d", "x", "y")?;
+        c2.add_gate_or("e", "x", "y")?;
+        c2.add_gate_lshift("f", "x", 2)?;
+        c2.add_gate_rshift("g", "y", 2)?;
+        c2.add_gate_not("h", "x")?;
+        c2.add_gate_not("i", "y")?;
 
-        assert_eq!(circuit.signal("d"), Signal::Value(72));
-        assert_eq!(circuit.signal("e"), Signal::Value(507));
-        assert_eq!(circuit.signal("f"), Signal::Value(492));
-        assert_eq!(circuit.signal("g"), Signal::Value(114));
-        assert_eq!(circuit.signal("h"), Signal::Value(65412));
-        assert_eq!(circuit.signal("i"), Signal::Value(65079));
-        assert_eq!(circuit.signal("x"), Signal::Value(123));
-        assert_eq!(circuit.signal("y"), Signal::Value(456));
+        assert!(c1.equals(&c2));
         Ok(())
     }
 
@@ -197,18 +197,19 @@ mod tests {
         builder.add_gate_rshift("g", "y", 2)?;
         builder.add_gate_not("h", "x")?;
         builder.add_gate_not("i", "y")?;
-        let mut circuit = builder.build();
+        let c1 = builder.build();
 
-        assert!(circuit.compute_signals().is_ok());
+        let mut c2 = Circuit::new();
+        c2.add_wire_with_value("x", 123)?;
+        c2.add_wire_with_value("y", 456)?;
+        c2.add_gate_and("d", "x", "y")?;
+        c2.add_gate_or("e", "x", "y")?;
+        c2.add_gate_lshift("f", "x", 2)?;
+        c2.add_gate_rshift("g", "y", 2)?;
+        c2.add_gate_not("h", "x")?;
+        c2.add_gate_not("i", "y")?;
 
-        assert_eq!(circuit.signal("d"), Signal::Value(72));
-        assert_eq!(circuit.signal("e"), Signal::Value(507));
-        assert_eq!(circuit.signal("f"), Signal::Value(492));
-        assert_eq!(circuit.signal("g"), Signal::Value(114));
-        assert_eq!(circuit.signal("h"), Signal::Value(65412));
-        assert_eq!(circuit.signal("i"), Signal::Value(65079));
-        assert_eq!(circuit.signal("x"), Signal::Value(123));
-        assert_eq!(circuit.signal("y"), Signal::Value(456));
+        assert!(c1.equals(&c2));
         Ok(())
     }
 }

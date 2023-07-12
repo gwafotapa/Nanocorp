@@ -53,14 +53,14 @@ mod tests {
 
     #[test]
     fn check_ids() {
+        assert!(WireId::new("w").is_ok());
+        assert!(WireId::new("nanocorp").is_ok());
+
         assert!(WireId::new("").is_err());
         assert!(WireId::new("w1r31d").is_err());
         assert!(WireId::new("Nanocorp").is_err());
         assert!(WireId::new("nanocorp!").is_err());
         assert!(WireId::new("nanocorp\n").is_err());
         assert!(WireId::new("nano corp").is_err());
-
-        assert!(WireId::new("w").is_ok());
-        assert!(WireId::new("nanocorp").is_ok());
     }
 }
