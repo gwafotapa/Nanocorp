@@ -167,6 +167,9 @@ mod tests {
 
     #[test]
     fn wire_id() {
+        assert!(Gate::or_value("valid", 3).is_ok());
+        assert!(Gate::and("x", "x").is_ok());
+
         assert!(matches!(Gate::not(""), Err(Error::InvalidWireId(_))));
         assert!(matches!(Gate::not("A"), Err(Error::InvalidWireId(_))));
         assert!(matches!(
@@ -215,5 +218,47 @@ mod tests {
             Gate::try_from("a RSHIFT a"),
             Err(Error::ParseShift(_))
         ));
+    }
+
+    #[test]
+    fn has_input() -> Result<()> {
+        assert!(Gate::not("x")?.has_input(&WireId::new("x")?));
+        assert!(Gate::and("x", "y")?.has_input(&WireId::new("x")?));
+        assert!(Gate::and("x", "y")?.has_input(&WireId::new("y")?));
+
+        assert!(!Gate::not("xx")?.has_input(&WireId::new("x")?));
+        assert!(!Gate::not("x")?.has_input(&WireId::new("xx")?));
+        assert!(!Gate::and("x", "y")?.has_input(&WireId::new("xy")?));
+        Ok(())
+    }
+
+    #[test]
+    fn signal() -> Result<()> {
+        assert_eq!(
+            Gate::and("x", "y")?.signal(353, Some(57)),
+            Signal::Value(353 & 57)
+        );
+        assert_eq!(
+            Gate::or("x", "y")?.signal(119, Some(3222)),
+            Signal::Value(119 | 3222)
+        );
+        assert_eq!(
+            Gate::and_value("x", 226)?.signal(27, None),
+            Signal::Value(27 & 226)
+        );
+        assert_eq!(
+            Gate::or_value("x", 913)?.signal(172, None),
+            Signal::Value(172 | 913)
+        );
+        assert_eq!(
+            Gate::lshift("x", 7)?.signal(34, None),
+            Signal::Value(34 << 7)
+        );
+        assert_eq!(
+            Gate::rshift("x", 3)?.signal(1925, None),
+            Signal::Value(1925 >> 3)
+        );
+        assert_eq!(Gate::not("x")?.signal(0xa56e, None), Signal::Value(!0xa56e));
+        Ok(())
     }
 }
