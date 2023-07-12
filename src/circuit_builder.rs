@@ -13,18 +13,19 @@ use crate::error::{Error, Result};
 /// # Example
 ///
 /// The circuit below tests if x is greater than 32767
-/// (returning 1 if it is true and 0 if it is not).
+/// (returning 1 if it is true and 0 if it is not).  
+/// In this example we test number 32768.
 /// ```
 /// # use circuitry::{CircuitBuilder, Signal, Error};
 /// # fn main() -> Result<(), Error> {
 /// let mut is_greater_than_32767 = CircuitBuilder::new()
-///     .add_wire_with_value("x", 0x7fff)?  // Adds wire x emitting 32767
+///     .add_wire_with_value("x", 0x8000)?  // Adds wire x emitting 32768
 ///     .add_gate_rshift("y", "x", 15)?     // Adds wire y emitting x >> 15
 ///     .add_gate_and_value("res", "y", 1)? // Adds wire res emitting y & 1
 ///     .build();
 ///
 /// is_greater_than_32767.compute_signals()?;
-/// assert_eq!(is_greater_than_32767.signal("res"), Signal::Value(0));
+/// assert_eq!(is_greater_than_32767.signal("res"), Signal::Value(1));
 /// # Ok(())
 /// # }
 /// ```

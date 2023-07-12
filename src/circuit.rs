@@ -36,7 +36,7 @@ use crate::error::{Error, Result};
 /// let mut is_multiple_of_4 = Circuit::new();
 /// is_multiple_of_4.add_wire_with_value("x", 100)?;       // Adds wire x emitting 100
 /// is_multiple_of_4.add_gate_and_value("y", "x", 1)?;     // Adds wire y emitting x & 1
-/// is_multiple_of_4.add_gate_and_value("z", "x", 2)?;     // Adds wire z emitting y & 2
+/// is_multiple_of_4.add_gate_and_value("z", "x", 2)?;     // Adds wire z emitting x & 2
 /// is_multiple_of_4.add_gate_or("yz", "y", "z")?;         // Adds wire yz emitting y | z
 /// is_multiple_of_4.add_gate_not("nyz", "yz")?;           // Adds wire nyz emitting !yz
 /// is_multiple_of_4.add_gate_and_value("res", "nyz", 1)?; // Adds wire res emitting nyz & 1
@@ -44,6 +44,7 @@ use crate::error::{Error, Result};
 /// assert_eq!(is_multiple_of_4.signal("res"), Signal::Uncomputed);
 ///
 /// is_multiple_of_4.compute_signals()?;
+/// assert_eq!(is_multiple_of_4.signal("x"), Signal::Value(100));
 /// assert_eq!(is_multiple_of_4.signal("res"), Signal::Value(1));
 /// # Ok(())
 /// # }
