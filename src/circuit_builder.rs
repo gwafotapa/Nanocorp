@@ -171,20 +171,4 @@ mod tests {
         assert_eq!(circuit.signal("y"), Signal::Value(456));
         Ok(())
     }
-
-    #[test]
-    fn xor() -> Result<()> {
-        let mut circuit = CircuitBuilder::new()
-            .add_wire("2536 -> x")?
-            .add_wire("9711 -> y")?
-            .add_wire("x OR y -> o")?
-            .add_wire("x AND y -> a")?
-            .add_wire("NOT a -> na")?
-            .add_wire("o AND na -> xor")?
-            .build();
-
-        assert!(circuit.compute_signals().is_ok());
-        assert_eq!(circuit.signal("xor"), Signal::Value(2536 ^ 9711));
-        Ok(())
-    }
 }

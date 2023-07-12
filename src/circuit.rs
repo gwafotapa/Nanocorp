@@ -10,6 +10,71 @@ use std::{
 use super::wire::{gate::Gate, signal::Signal, wire_id::WireId, wire_input::WireInput, Wire};
 use crate::error::{Error, Result};
 
+/// A circuit is a set of connected wires and gates
+///
+/// A circuit is built by adding wires one at a time.
+/// Each wire has a unique id which is an ascii lowercase string.  
+/// A wire can have three kinds of inputs:
+/// - a constant value ([u16])
+/// - the output of another wire
+/// - a gate combining outputs of other wires
+/// When first added, a wire's signal is [`Signal::Uncomputed`].  
+/// Calling [`compute_signals()`](Self::compute_signals) will compute signals
+/// for all wires in the circuit.
+/// You can then retrieve a signal by calling [`signal()`](Self::signal)
+/// with the id of the wire you're interested in.
+///
+/// # Example
+///
+/// The following circuit determines if a number is a multiple of 4.  
+/// Wire x takes the number as input.
+/// Wire res emits signal 1 if x is a multiple of 4 and 0 otherwise.
+/// ```
+/// # use circuitry::{Circuit, Signal, Error};
+/// # fn main() -> Result<(), Error> {
+/// let mut is_multiple_of_4 = Circuit::new();
+/// is_multiple_of_4.add_wire_with_value("x", 100)?;       // Adds wire x emitting value 100
+/// is_multiple_of_4.add_gate_and_value("y", "x", 1)?;     // Adds wire y emitting x & 1
+/// is_multiple_of_4.add_gate_and_value("z", "x", 2)?;     // Adds wire z emitting y & 2
+/// is_multiple_of_4.add_gate_or("yz", "y", "z")?;         // Adds wire yz emitting y | z
+/// is_multiple_of_4.add_gate_not("nyz", "yz")?;           // Adds wire nyz emitting !yz
+/// is_multiple_of_4.add_gate_and_value("res", "nyz", 1)?; // Adds wire res emitting nyz & 1
+/// assert_eq!(is_multiple_of_4.signal("x"), Signal::Uncomputed);
+/// assert_eq!(is_multiple_of_4.signal("res"), Signal::Uncomputed);
+///
+/// is_multiple_of_4.compute_signals()?;
+/// assert_eq!(is_multiple_of_4.signal("res"), Signal::Value(1));
+/// # Ok(())
+/// # }
+/// ```
+/// A [`CircuitBuilder`](super::CircuitBuilder) is provided
+/// to avoid retyping the circuit's name with each addition of a wire.  
+/// Methods of [`CircuitBuilder`](super::CircuitBuilder) for adding wires
+/// have names identical to those of [`Circuit`].
+///
+/// Wires also have string representations if you prefer.
+/// In that case, use repeated calls to [`add_wire()`](Self::add_wire)
+///
+/// # Example
+/// The circuit below computes the logical XOR between its wires x and y.
+///
+/// ```
+/// # use circuitry::{CircuitBuilder, Signal, Error};
+/// # fn main() -> Result<(), Error> {
+/// let mut circuit = CircuitBuilder::new()
+///     .add_wire("2536 -> x")?        // Adds wire x emitting signal 2536
+///     .add_wire("9711 -> y")?
+///     .add_wire("x OR y -> o")?      // Adds wire o output of a gate OR with inputs x band y
+///     .add_wire("x AND y -> a")?
+///     .add_wire("NOT a -> na")?
+///     .add_wire("o AND na -> xor")?
+///     .build();
+///
+/// circuit.compute_signals()?;
+/// assert_eq!(circuit.signal("xor"), Signal::Value(2536 ^ 9711));
+/// # Ok(())
+/// # }
+/// ```
 #[derive(Clone, Debug, Default)]
 pub struct Circuit {
     wires: HashMap<WireId, Wire>,
@@ -18,7 +83,7 @@ pub struct Circuit {
 }
 
 impl Circuit {
-    /// Test
+    /// Creates an empty circuit.
     pub fn new() -> Self {
         Self::default()
     }
@@ -33,10 +98,22 @@ impl Circuit {
         }
     }
 
+    /// Adds a wire using string representation.
+    /// See [example](Circuit#example-1) for usage.
+
+    pub fn add_wire(&mut self, s: &str) -> Result<()> {
+        self.add(Wire::try_from(s)?)
+    }
+
+    /// Adds a wire `id` whose input is a value.
+    /// Returns an error if `id` is not ascii lowercase.
     pub fn add_wire_with_value<S: Into<String>>(&mut self, id: S, value: u16) -> Result<()> {
         self.add(Wire::with_value(id, value)?)
     }
 
+    /// Adds a wire `id` whose input is another wire `input_id`.  
+    /// Returns an error if `id` or `input_id` is not ascii lowercase
+    /// or if `id` and `input_id` match.
     pub fn add_wire_from_wire<S: Into<String>, T: Into<String>>(
         &mut self,
         id: S,
@@ -45,6 +122,8 @@ impl Circuit {
         self.add(Wire::from_wire(id, input_id)?)
     }
 
+    /// Adds a wire `output` fed by a logical AND gate between wires `input1` and `input2`.  
+    /// Returns an error if any id is not ascii lowercase or if `output` matches an input.
     pub fn add_gate_and<S: Into<String>, T: Into<String>, U: Into<String>>(
         &mut self,
         output: S,
@@ -54,6 +133,9 @@ impl Circuit {
         self.add(Wire::from_gate_and(output, input1, input2)?)
     }
 
+    /// Adds a wire `output` fed by a logical AND gate between wire `input` and value.  
+    /// Returns an error if `output` or `input` is not ascii lowercase
+    /// or if `output` matches `input`.
     pub fn add_gate_and_value<S: Into<String>, T: Into<String>>(
         &mut self,
         output: S,
@@ -63,6 +145,8 @@ impl Circuit {
         self.add(Wire::from_gate_and_value(output, input, value)?)
     }
 
+    /// Adds a wire `output` fed by a logical OR gate between wires `input1` and `input2`.  
+    /// Returns an error if any id is not ascii lowercase or if `output` matches an input.
     pub fn add_gate_or<S: Into<String>, T: Into<String>, U: Into<String>>(
         &mut self,
         output: S,
@@ -72,6 +156,9 @@ impl Circuit {
         self.add(Wire::from_gate_or(output, input1, input2)?)
     }
 
+    /// Adds a wire `output` fed by a logical OR gate between wire `input` and value.  
+    /// Returns an error if `output` or `input` is not ascii lowercase
+    /// or if `output` matches `input`.
     pub fn add_gate_or_value<S: Into<String>, T: Into<String>>(
         &mut self,
         output: S,
@@ -81,6 +168,9 @@ impl Circuit {
         self.add(Wire::from_gate_or_value(output, input, value)?)
     }
 
+    /// Adds a wire `output` fed by a logical LEFT SHIFT gate of wire `input` by amount `shift`.  
+    /// Returns an error if `output` or `input` is not ascii lowercase
+    /// or if `output` matches `input`.
     pub fn add_gate_lshift<S: Into<String>, T: Into<String>>(
         &mut self,
         output: S,
@@ -90,6 +180,9 @@ impl Circuit {
         self.add(Wire::from_gate_lshift(output, input, shift)?)
     }
 
+    /// Adds a wire `output` fed by a logical RIGHT SHIFT gate of wire `input` by amount `shift`.  
+    /// Returns an error if `output` or `input` is not ascii lowercase
+    /// or if `output` matches `input`.
     pub fn add_gate_rshift<S: Into<String>, T: Into<String>>(
         &mut self,
         output: S,
@@ -99,6 +192,9 @@ impl Circuit {
         self.add(Wire::from_gate_rshift(output, input, shift)?)
     }
 
+    /// Adds a wire `output` fed by a logical NOT gate of wire `input`.  
+    /// Returns an error if `output` or `input` is not ascii lowercase
+    /// or if `output` matches `input`.
     pub fn add_gate_not<S: Into<String>, T: Into<String>>(
         &mut self,
         output: S,
@@ -127,10 +223,18 @@ impl Circuit {
         self.get_wire_of(id).unwrap()
     }
 
+    /// Retrieves signal of wire `id`.  
+    /// If you get the result [`Signal::Uncomputed`], you forgot to call
+    /// [`compute_signals()`](Self::compute_signals).  
+    /// If you get the result [`Signal::Uncomputable`], somewhere up the chain of inputs
+    /// leading to your wire,  
+    /// an input is unknown to the circuit, thus leading to a chain of uncomputable signals.  
+    /// Returns an error if `id` is not ascii lowercase or if circuit has no such wire.
     pub fn get_signal<S: Into<String>>(&self, id: S) -> Result<Signal> {
         self.get_signal_of(&WireId::new(id)?)
     }
 
+    /// Infallible version of the previous function.
     pub fn signal<S: Into<String>>(&self, id: S) -> Signal {
         self.get_signal(id).unwrap()
     }
@@ -153,6 +257,11 @@ impl Circuit {
             })
     }
 
+    /// Computes signals of all wires in the circuit.  
+    /// If you add wires after calling this function, you need to call it again to compute
+    /// the signals of the new wires  
+    /// (and potentially previously uncomputable signals).  
+    /// Returns error if the circuit has a loop.
     pub fn compute_signals(&mut self) -> Result<()> {
         let mut to_be_computed = mem::take(&mut self.uncomputable);
         for id in &mut to_be_computed {
@@ -165,6 +274,8 @@ impl Circuit {
         Ok(())
     }
 
+    /// Computes the signal of wire `id`.  
+    /// Returns an error if `id` is not ascii lowercase or if the circuit has no such wire.
     // TODO: Need testing
     pub fn compute_signal<S: Into<String>>(&mut self, id: S) -> Result<Signal> {
         let id = WireId::new(id)?;
@@ -304,23 +415,33 @@ impl Circuit {
         ids
     }
 
+    /// Prints all signals.  
+    /// The implementation of [`Circuit`] uses a [`HashMap`](std::collections::HashMap).
+    /// For that reason, the ordering is random.
     pub fn print_signals(&self) {
         for wire in self.wires.values() {
             println!("{}: {:?}", wire.id(), wire.signal());
         }
     }
 
+    /// Reads circuit from a file assuming a wire per line.  
+    /// See [example](Circuit#example-1) for how to represent a wire with a string
+    /// or use the next function to get clues!
     pub fn read<P: AsRef<Path>>(path: P) -> Result<Self> {
         let s = fs::read_to_string(path)?;
         Self::try_from(s.as_str())
     }
 
+    /// Writes circuit to a file.
     pub fn write<P: AsRef<Path>>(&self, path: P) -> Result<()> {
         let data = self.to_string();
         let mut f = File::create(path)?;
         Ok(f.write_all(data.as_bytes())?)
     }
 
+    /// Remove wire `id` from circuit then reset all signals (to [`Signal::Uncomputed`]).  
+    /// Returns an error if `id` is not ascii lowercase or if circuit has not such wire.
+    /// If an error occurs, signals are not reset.
     pub fn remove_wire_then_reset_signals<S: Into<String>>(&mut self, id: S) -> Result<()> {
         let id = WireId::new(id)?;
         self.wires
