@@ -18,8 +18,8 @@ impl CircuitBuilder {
 
     pub fn build(&mut self) -> Circuit {
         let mut circuit = Circuit::new();
-        circuit.wires = mem::take(&mut self.wires);
-        circuit.uncomputed = circuit.wires.keys().cloned().collect();
+        circuit.set_wires(mem::take(&mut self.wires));
+        circuit.set_uncomputed(circuit.get_wires().keys().cloned().collect());
         circuit
     }
 
@@ -118,7 +118,7 @@ impl CircuitBuilder {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::circuit::wire::signal::Signal;
+    use crate::Signal;
 
     #[test]
     fn one_liner() -> Result<()> {

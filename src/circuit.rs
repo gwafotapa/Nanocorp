@@ -1,10 +1,3 @@
-#[doc(hidden)]
-pub mod circuit_builder;
-mod wire;
-
-pub use circuit_builder::CircuitBuilder;
-pub use wire::signal::Signal;
-
 use std::{
     collections::HashMap,
     fmt::{self, Display, Formatter},
@@ -14,8 +7,8 @@ use std::{
     path::Path,
 };
 
+use super::wire::{gate::Gate, signal::Signal, wire_id::WireId, wire_input::WireInput, Wire};
 use crate::error::{Error, Result};
-use wire::{gate::Gate, wire_id::WireId, wire_input::WireInput, Wire};
 
 #[derive(Clone, Debug, Default)]
 pub struct Circuit {
@@ -25,6 +18,7 @@ pub struct Circuit {
 }
 
 impl Circuit {
+    /// Test
     pub fn new() -> Self {
         Self::default()
     }
@@ -111,6 +105,10 @@ impl Circuit {
         input: T,
     ) -> Result<()> {
         self.add(Wire::from_gate_not(output, input)?)
+    }
+
+    pub(super) fn get_wires(&self) -> &HashMap<WireId, Wire> {
+        &self.wires
     }
 
     #[allow(dead_code)]
@@ -350,6 +348,14 @@ impl Circuit {
             .for_each(|w| w.set_signal(Signal::Uncomputed));
         self.uncomputable = vec![];
         self.uncomputed = self.wires.keys().cloned().collect();
+    }
+
+    pub(super) fn set_wires(&mut self, wires: HashMap<WireId, Wire>) {
+        self.wires = wires;
+    }
+
+    pub(super) fn set_uncomputed(&mut self, uncomputed: Vec<WireId>) {
+        self.uncomputed = uncomputed;
     }
 }
 

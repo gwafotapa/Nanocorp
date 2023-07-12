@@ -15,8 +15,8 @@
 //! is the logical AND of the signals emitted by "a" and "b".
 //!
 //! ```
-//! # use circuitry::{CircuitBuilder, Signal, error::Result};
-//! # fn main() -> Result<()> {
+//! # use circuitry::{CircuitBuilder, Signal, Error};
+//! # fn main() -> Result<(), Error> {
 //! let mut circuit = CircuitBuilder::new()
 //!     .add_wire_with_value("a", 0x03ff)?
 //!     .add_wire_with_value("b", 0xff50)?
@@ -35,8 +35,14 @@
 // Dependency reexports
 pub use thiserror;
 
-pub use circuit::{Circuit, CircuitBuilder, Signal};
-pub use error::{Error, Result};
+pub use circuit::Circuit;
+pub use circuit_builder::CircuitBuilder;
+pub use error::Error;
+pub use wire::signal::Signal;
 
+#[doc(hidden)]
 pub mod circuit;
+#[doc(hidden)]
+pub mod circuit_builder;
 pub mod error;
+mod wire;

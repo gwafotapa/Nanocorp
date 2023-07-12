@@ -6,6 +6,7 @@ pub type Result<T> = result::Result<T, Error>;
 
 #[derive(Debug, thiserror::Error)]
 pub enum Error {
+    /// Test
     #[error("Wire id '{0}' is not ascii lowercase")]
     InvalidWireId(String),
 
