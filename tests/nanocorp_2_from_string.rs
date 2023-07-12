@@ -1,7 +1,7 @@
-use circuitry::{circuit::Circuit, error::Error};
+use circuitry::{error::Result, Circuit};
 
 #[test]
-fn try_from_nanocorp_example_2() -> Result<(), Error> {
+fn nanocorp_2_from_string() -> Result<()> {
     let s = "lf AND lq -> ls\n\
 		 iu RSHIFT 1 -> jn\n\
 		 bo OR bu -> bv\n\
@@ -343,9 +343,8 @@ fn try_from_nanocorp_example_2() -> Result<(), Error> {
 		 he RSHIFT 5 -> hh";
 
     let mut c = Circuit::try_from(s)?;
-    assert!(c.compute_signals().is_ok());
-    // println!("{}", c);
-    // c.print_signals();
-    // println!("Uncomputable wires: {}", c.uncomputable.len());
+    c.compute_signals()?;
+    println!("{}", c);
+    c.print_signals();
     Ok(())
 }

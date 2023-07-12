@@ -578,7 +578,7 @@ mod tests {
     }
 
     #[test]
-    fn nanocorp_example_1() -> Result<()> {
+    fn nanocorp_1() -> Result<()> {
         let mut circuit = Circuit::new();
         circuit.add_wire_with_value("x", 123)?;
         circuit.add_wire_with_value("y", 456)?;
@@ -604,7 +604,7 @@ mod tests {
     }
 
     #[test]
-    fn nanocorp_example_1_from_string() -> Result<()> {
+    fn nanocorp_1_from_string() -> Result<()> {
         let s = "x AND y -> d\n\
 		 NOT x -> h\n\
 		 NOT y -> i\n\
@@ -630,14 +630,13 @@ mod tests {
     }
 
     #[test]
-    fn read_nanocorp_example_2() -> Result<()> {
-        let c = Circuit::read("circuits/nanocorp_2.txt")?;
-        println!("{}", c);
+    fn read_nanocorp_2() -> Result<()> {
+        Circuit::read("circuits/nanocorp_2.txt")?;
         Ok(())
     }
 
     #[test]
-    fn write_read_nanocorp_example_1() -> Result<()> {
+    fn write_read_nanocorp_1() -> Result<()> {
         let mut c1 = Circuit::new();
         c1.add_wire_with_value("x", 123)?;
         c1.add_wire_with_value("y", 456)?;
@@ -655,7 +654,7 @@ mod tests {
     }
 
     #[test]
-    fn read_write_read_nanocorp_example_2() -> Result<()> {
+    fn read_write_read_nanocorp_2() -> Result<()> {
         let c1 = Circuit::read("circuits/nanocorp_2.txt")?;
         c1.write("circuits/nanocorp_2_copy.txt")?;
         let c2 = Circuit::read("circuits/nanocorp_2_copy.txt")?;
