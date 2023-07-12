@@ -2,7 +2,7 @@ use std::{
     collections::HashMap,
     fmt::{self, Display, Formatter},
     fs::{self, File},
-    io::{self, Write},
+    io::Write,
     mem,
     path::Path,
 };
@@ -315,10 +315,10 @@ impl Circuit {
         Self::try_from(s.as_str())
     }
 
-    pub fn write<P: AsRef<Path>>(&self, path: P) -> io::Result<()> {
+    pub fn write<P: AsRef<Path>>(&self, path: P) -> Result<()> {
         let data = self.to_string();
         let mut f = File::create(path)?;
-        f.write_all(data.as_bytes())
+        Ok(f.write_all(data.as_bytes())?)
     }
 
     pub fn remove_wire_then_reset_signals<S: Into<String>>(&mut self, id: S) -> Result<()> {
